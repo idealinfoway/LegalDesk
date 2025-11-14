@@ -799,52 +799,45 @@ void _showErrorMessage(String error) {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                flex: 2,
-                                child: TextFormField(
-                                  controller: _srNoController,
-                                  decoration: InputDecoration(
-                                    labelText: 'SR No',
-                                    // prefixIcon: Icon(Icons.confirmation_number,
-                                    // color: colorScheme.secondary),
-                                    filled: true,
-                                    fillColor: colorScheme.surface,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Flexible(
-                                flex: 4,
-                                child: DropdownButtonFormField<String>(
-                                  value: _status,
-                                  items:
-                                      [
-                                            'Pending',
-                                            'Un Numbered',
-                                            'Disposed',
-                                            'Closed',
-                                          ]
-                                          .map(
-                                            (s) => DropdownMenuItem(
-                                              value: s,
-                                              child: Text(s),
-                                            ),
-                                          )
-                                          .toList(),
-                                  onChanged: (val) =>
-                                      setState(() => _status = val!),
-                                  decoration: InputDecoration(
-                                    labelText: 'Status',
-                                    // prefixIcon: Icon(Icons.flag,
-                                    //     color: colorScheme.secondary),
-                                    filled: true,
-                                    fillColor: colorScheme.surface,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          TextFormField(
+                            controller: _srNoController,
+                            decoration: InputDecoration(
+                              labelText: 'SR No',
+                              // prefixIcon: Icon(Icons.confirmation_number,
+                              // color: colorScheme.secondary),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            initialValue: _status,
+                            
+                            items:
+                                [
+                                      'Pending',
+                                      'Un Numbered',
+                                      'Disposed',
+                                      'Closed',
+                                    ]
+                                    .map(
+                                      (s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text(s),
+                                      ),
+                                    )
+                                    .toList(),
+                            onChanged: (val) =>
+                                setState(() => _status = val!),
+                              
+                            decoration: InputDecoration(
+                              labelText: 'Status',
+                              
+                              // prefixIcon: Icon(Icons.flag,
+                              //     color: colorScheme.secondary),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
                           ),
                         ],
                       ),

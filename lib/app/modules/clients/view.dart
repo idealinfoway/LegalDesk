@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:legalsteward/app/modules/clients/controller.dart';
 
+import '../../constants/ad_constant.dart';
 import '../../data/models/client_model.dart';
 import '../../utils/font_styles.dart';
 import '../ads/banner_ad_implement.dart';
@@ -77,7 +78,7 @@ class ClientsView extends StatelessWidget {
           // Search Bar
           //adhere
           // RefreshableBannerAdWidget(adUnitId: 'ca-app-pub-3940256099942544/9214589741'),
-          RefreshableBannerAdWidget(adUnitId: 'ca-app-pub-4922359332193574/9863408883'),
+          RefreshableBannerAdWidget(adUnitId: AdConstant.bannerAdUnitId),
           Container(
             padding: const EdgeInsets.all(16),
             child: TextField(

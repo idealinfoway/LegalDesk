@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:legalsteward/app/modules/about/view.dart';
@@ -13,6 +14,7 @@ import 'package:legalsteward/app/modules/login/controller.dart';
 import 'package:legalsteward/app/utils/tools.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../constants/ad_constant.dart';
 import '../../data/models/case_model.dart';
 import '../../data/models/client_model.dart';
 import '../../data/models/task_model.dart';
@@ -316,12 +318,14 @@ class DashboardView extends GetView<DashBoardController> {
                                         const Icon(Icons.add_task,
                                             color: Colors.blueAccent),
                                         const SizedBox(width: 8),
-                                        Text(
-                                          "No pending tasks — Add Task",
-                                          style:
-                                              theme.textTheme.bodyLarge?.copyWith(
-                                            color: theme.colorScheme.primary,
-                                            fontWeight: FontWeight.w600,
+                                        Expanded(
+                                          child: Text(
+                                            "No pending tasks — Add Task",
+                                            style:
+                                                theme.textTheme.bodyLarge?.copyWith(
+                                              color: theme.colorScheme.primary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -387,7 +391,7 @@ class DashboardView extends GetView<DashBoardController> {
                   const SizedBox(height: 32),
                   // adhere
                   // RefreshableBannerAdWidget(adUnitId: 'ca-app-pub-3940256099942544/9214589741'),
-                  RefreshableBannerAdWidget(adUnitId: 'ca-app-pub-4922359332193574/1199490813'),
+                  RefreshableBannerAdWidget(adUnitId: AdConstant.bannerAdUnitId),
                   
                   const SizedBox(height: 42),
                 ],

@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../constants/ad_constant.dart';
 import '../../data/models/case_model.dart';
 import '../../data/models/task_model.dart';
 import '../ads/banner_ad_implement.dart';
@@ -86,7 +87,7 @@ class _CalendarViewState extends State<CalendarView> {
         children: [
           //adhere
                   // RefreshableBannerAdWidget(adUnitId: 'ca-app-pub-3940256099942544/9214589741'),
-                  RefreshableBannerAdWidget(adUnitId: 'ca-app-pub-4922359332193574/1199490813'),
+                  RefreshableBannerAdWidget(adUnitId: AdConstant.bannerAdUnitId),
           TableCalendar<dynamic>(
             firstDay: DateTime(2020),
             lastDay: DateTime(2100),

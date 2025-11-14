@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../../constants/ad_constant.dart';
+
 class NativeAdExample extends StatefulWidget {
   const NativeAdExample({super.key});
 
@@ -19,7 +21,7 @@ class _NativeAdExampleState extends State<NativeAdExample> {
     _nativeAd = NativeAd(
       //adhere
       // adUnitId: 'ca-app-pub-3940256099942544/2247696110', // Test ID
-      adUnitId: 'ca-app-pub-4922359332193574/4356733663', 
+      adUnitId: AdConstant.nativeAdUnitId, 
       factoryId: 'listTileMedium',
       request: const AdRequest(),
       listener: NativeAdListener(
