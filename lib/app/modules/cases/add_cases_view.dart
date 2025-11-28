@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/case_model.dart';
+import '../../services/notification_service.dart';
 import '../../data/models/client_model.dart';
 import '../clients/add_client_view.dart';
 
@@ -130,6 +131,12 @@ class _AddCaseViewState extends State<AddCaseView> {
           ..registrationNo = _registrationNoController.text.trim();
 
         await widget.existingCase!.save();
+        // Reschedule hearing reminder if date changed
+        if (_hearingDate != null) {
+          // await NotificationService.scheduleCaseHearingReminder(widget.existingCase!);
+        } else {
+          // await NotificationService.cancelCaseHearingReminder(widget.existingCase!);
+        }
         Get.back(result: 'updated');
 
         Get.snackbar('Updated', 'Case updated successfully!');
@@ -158,6 +165,10 @@ class _AddCaseViewState extends State<AddCaseView> {
         );
 
         await Hive.box<CaseModel>('cases').add(newCase);
+        // Schedule hearing reminder for new case if hearing date set
+        if (_hearingDate != null) {
+          // await NotificationService.scheduleCaseHearingReminder(newCase);
+        }
         Get.back(result: 'updated');
         // Get.back(result: 'updated');
 

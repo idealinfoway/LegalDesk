@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:legalsteward/app/modules/ads/native_ads.dart';
+// import 'package:legalsteward/app/modules/ads/native_ads.dart';
 import 'package:legalsteward/app/modules/cases/controller.dart';
 
 import '../../data/models/case_model.dart';
@@ -189,7 +189,7 @@ class CasesView extends StatelessWidget {
                           'No cases found.',
                           'Start by adding your first case',
                         ),
-                        NativeAdExample(),
+                        // NativeAdExample(),
                         SizedBox(height: 150,)
                       ],
                     );
@@ -203,7 +203,7 @@ class CasesView extends StatelessWidget {
                             'No cases match your search',
                             'Try adjusting your filters or search terms',
                           ),
-                          NativeAdExample(),
+                          // NativeAdExample(),
                           SizedBox(height: 200,)
                         ],
                       )
@@ -223,7 +223,7 @@ class CasesView extends StatelessWidget {
                           children: [
                             _buildCaseCard(c, theme, context),
                             SizedBox(height: 10),
-                            NativeAdExample(),
+                            // NativeAdExample(),
                           ],
                         );
                       }
