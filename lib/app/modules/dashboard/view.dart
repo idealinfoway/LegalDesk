@@ -18,6 +18,7 @@ import '../../constants/ad_constant.dart';
 import '../../data/models/case_model.dart';
 import '../../data/models/client_model.dart';
 import '../../data/models/task_model.dart';
+import '../FeedBack/feedback_diaog.dart';
 import '../tasks/task_controller.dart';
 import '../tasks/task_detail_view.dart';
 import 'profile_page.dart';
@@ -194,12 +195,16 @@ class DashboardView extends GetView<DashBoardController> {
                         title: 'Check out this App',
                       ),
                     );
-                  } else {
+                  } else if (value == 'Feedback') {
+                    FeedbackDialog.show(context);
+                  }
+                   else {
                     SystemNavigator.pop();
                   }
                 },
                 itemBuilder: (context) => [
                       PopupMenuItem(value: 'About', child: Text('About')),
+                      PopupMenuItem(value: 'Feedback', child: Text('Feedback')),
                       PopupMenuItem(value: 'Share', child: Text('Share')),
                       PopupMenuItem(value: 'Sign Out', child: Text('Sign Out')),
                       PopupMenuItem(value: 'Exit', child: Text('Exit')),

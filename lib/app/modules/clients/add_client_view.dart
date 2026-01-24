@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/client_model.dart';
+import '../../services/contact_import_service.dart';
 
 class AddClientView extends StatefulWidget {
   final ClientModel? existingClient;
@@ -22,6 +23,31 @@ class _AddClientViewState extends State<AddClientView> {
   final _emailController = TextEditingController();
   final _cityController = TextEditingController();
   final _stateController = TextEditingController();
+
+  Future<void> _importFromContacts() async {
+    final imported = await ContactImportService.pickClientFromContacts(context);
+    if (imported == null) return; // permission denied or cancelled
+
+    setState(() {
+      if ((imported.name ?? '').isNotEmpty) {
+        _nameController.text = imported.name!;
+      }
+      if ((imported.phone ?? '').isNotEmpty) {
+        _contactController.text = imported.phone!;
+      }
+      if ((imported.email ?? '').isNotEmpty) {
+        _emailController.text = imported.email!;
+      }
+      if ((imported.city ?? '').isNotEmpty) {
+        _cityController.text = imported.city!;
+      }
+      if ((imported.state ?? '').isNotEmpty) {
+        _stateController.text = imported.state!;
+      }
+    });
+
+    Get.snackbar('Imported', 'Client details imported from Contacts');
+  }
 
   @override
 void initState() {
@@ -48,7 +74,7 @@ void initState() {
           ..city = _cityController.text.trim()
           ..state = _stateController.text.trim();
         await widget.existingClient!.save();
-        Get.back();
+        // Get.back();
         Get.snackbar('Updated', 'Client updated successfully');
       } else {
         // Add new client
@@ -62,9 +88,11 @@ void initState() {
         );
         final box = Hive.box<ClientModel>('clients');
         await box.add(newClient);
-        Get.back();
+        // Get.back();
         Get.snackbar('Success', 'Client added successfully');
       }
+      Get.back();
+        
     }
   }
 
@@ -83,6 +111,22 @@ void initState() {
           key: _formKey,
           child: Column(
             children: [
+              Align(
+                alignment: Alignment.center,
+                child: OutlinedButton.icon(
+                  style: ButtonStyle(
+                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                  ),
+                  onPressed: _importFromContacts,
+                  icon: const Icon(Icons.person_add_alt_1),
+                  label: const Text('Import from Contacts'),
+                ),
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Name'),
