@@ -176,6 +176,27 @@ class DashboardView extends GetView<DashBoardController> {
               },
               icon: Icon(Icons.person_outline)),
           actions: [
+            IconButton(
+                        icon: const Icon(Icons.backup),
+                        // a
+                        // style: ElevatedButton.styleFrom(
+                        //   minimumSize: Size(double.infinity, 40),
+                        //   backgroundColor: 
+                        //       Theme.of(context).colorScheme.primary,
+                              
+                        //   padding: const EdgeInsets.symmetric(vertical: 16),
+                        //   textStyle: const TextStyle(
+                        //       fontSize: 18, fontWeight: FontWeight.bold),
+                        // ),
+                        onPressed: (controller.isConnected.value && !controller.isBackingUp.value)
+                            ? () async {
+                                controller.isBackingUp.value = true;
+                                await _handleBackup(context);
+                                await Future.delayed(const Duration(seconds: 4));
+                                controller.isBackingUp.value = false;
+                              }
+                            : null,
+                      ),
             PopupMenuButton(
                 icon: Icon(Icons.more_vert),
                 onSelected: (value) {

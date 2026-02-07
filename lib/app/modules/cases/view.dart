@@ -75,6 +75,7 @@ class CasesView extends StatelessWidget {
         ],
       ),
       body: Column(
+        
         children: [
           // Search Bar
           Container(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:legalsteward/app/data/models/hearing_model.dart';
 
 import 'app/data/models/case_model.dart';
 import 'app/data/models/client_model.dart';
@@ -25,6 +26,7 @@ void main() async {
   // await NotificationService.init();
   MobileAds.instance.initialize();
   Hive.registerAdapter(CaseModelAdapter());
+  Hive.registerAdapter(hearingModelAdapter());
   Hive.registerAdapter(ClientModelAdapter());
   Hive.registerAdapter(TaskModelAdapter());
   Hive.registerAdapter(TimeEntryModelAdapter());
@@ -35,6 +37,7 @@ void main() async {
   await Hive.openBox<InvoiceModel>('invoices');
   await Hive.openBox<TaskModel>('tasks');
   await Hive.openBox<CaseModel>('cases');
+  await Hive.openBox<hearingModel>('hearings');
   await Hive.openBox<ClientModel>('clients');
   await Hive.openBox<TimeEntryModel>('time_entries');
   await Hive.openBox<ExpenseModel>('expenses'); 

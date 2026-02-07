@@ -14,6 +14,7 @@ import 'package:synchronized/synchronized.dart';
 import '../../data/models/case_model.dart';
 import '../../data/models/client_model.dart';
 import '../../data/models/expense_model.dart';
+import '../../data/models/hearing_model.dart';
 import '../../data/models/invoice_model.dart';
 import '../../data/models/task_model.dart';
 import '../../data/models/time_entry_model.dart';
@@ -23,11 +24,7 @@ class LoginController extends GetxController {
   final _backupLock = Lock();
 
   final GoogleSignIn googleSignIn = GoogleSignIn(
-    scopes: [
-      'email',
-      'profile',
-      'https://www.googleapis.com/auth/drive.file',
-    ],
+    scopes: ['email', 'profile', 'https://www.googleapis.com/auth/drive.file'],
   );
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -93,8 +90,9 @@ class LoginController extends GetxController {
       print('Created Firebase credential, signing in...');
 
       // Sign in to Firebase with the credential
-      final UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
       final User? user = userCredential.user;
 
       if (user != null) {
@@ -108,7 +106,8 @@ class LoginController extends GetxController {
           await restoreFromDrive(client);
         } catch (e) {
           print(
-              'No backup found or error restoring from Drive: ${e.toString()}');
+            'No backup found or error restoring from Drive: ${e.toString()}',
+          );
         }
 
         // Ensure all boxes are open before proceeding
@@ -170,9 +169,11 @@ class LoginController extends GetxController {
     }
   }
 
-// Update your _saveUserToHive method
+  // Update your _saveUserToHive method
   Future<void> _saveUserToHive(
-      User firebaseUser, GoogleSignInAccount googleUser) async {
+    User firebaseUser,
+    GoogleSignInAccount googleUser,
+  ) async {
     try {
       final userBox = await _getSafeBox<UserModel>('user');
 
@@ -191,7 +192,7 @@ class LoginController extends GetxController {
     }
   }
 
-// Update your signOut method
+  // Update your signOut method
   Future<void> signOut() async {
     try {
       await _auth.signOut();
@@ -263,6 +264,8 @@ class LoginController extends GetxController {
           await Hive.box<ExpenseModel>('expenses').flush();
         if (Hive.isBoxOpen('invoices'))
           await Hive.box<InvoiceModel>('invoices').flush();
+        if (Hive.isBoxOpen('hearings'))
+          await Hive.box<hearingModel>('hearings').flush();
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -291,8 +294,11 @@ class LoginController extends GetxController {
             final fileBytes = await entity.readAsBytes();
             final fileName = entity.path.split('/').last;
 
-            final archiveFile =
-                ArchiveFile(fileName, fileBytes.length, fileBytes);
+            final archiveFile = ArchiveFile(
+              fileName,
+              fileBytes.length,
+              fileBytes,
+            );
             archive.addFile(archiveFile);
             hasFiles = true;
           }
@@ -307,7 +313,8 @@ class LoginController extends GetxController {
 
         if (zipData.isEmpty) {
           throw Exception(
-              'Failed to create zip data - encoder returned null/empty');
+            'Failed to create zip data - encoder returned null/empty',
+          );
         }
 
         await zipFile.writeAsBytes(zipData);
@@ -319,7 +326,8 @@ class LoginController extends GetxController {
         final zipSize = await zipFile.length();
         if (zipSize < 50) {
           throw Exception(
-              'Zip file is too small ($zipSize bytes), likely corrupt');
+            'Zip file is too small ($zipSize bytes), likely corrupt',
+          );
         }
 
         // Zip validation
@@ -388,6 +396,8 @@ class LoginController extends GetxController {
         await Hive.box<ExpenseModel>('expenses').close();
       if (Hive.isBoxOpen('invoices'))
         await Hive.box<InvoiceModel>('invoices').close();
+      if (Hive.isBoxOpen('hearings'))
+        await Hive.box<hearingModel>('hearings').close();
 
       final hiveDir = await getApplicationDocumentsDirectory();
       final hivePath = hiveDir.path;
@@ -395,15 +405,20 @@ class LoginController extends GetxController {
 
       // 2. Download backup zip from Drive
       final driveApi = drive.DriveApi(client);
-      final fileList = await driveApi.files
-          .list(q: "name='$driveBackupFileName' and trashed=false");
+      final fileList = await driveApi.files.list(
+        q: "name='$driveBackupFileName' and trashed=false",
+      );
       if (fileList.files == null || fileList.files!.isEmpty) {
         print('No backup found on Drive.');
         return;
       }
       final backupFile = fileList.files!.first;
-      final mediaStream = await driveApi.files.get(backupFile.id!,
-          downloadOptions: drive.DownloadOptions.fullMedia) as drive.Media;
+      final mediaStream =
+          await driveApi.files.get(
+                backupFile.id!,
+                downloadOptions: drive.DownloadOptions.fullMedia,
+              )
+              as drive.Media;
       final List<int> dataStore = [];
       await for (final data in mediaStream.stream) {
         dataStore.addAll(data);
@@ -427,6 +442,7 @@ class LoginController extends GetxController {
       await Hive.openBox<TimeEntryModel>('time_entries');
       await Hive.openBox<ExpenseModel>('expenses');
       await Hive.openBox<InvoiceModel>('invoices');
+      await Hive.openBox<hearingModel>('hearings');
     } catch (e) {
       print('Error restoring from Drive: $e');
       rethrow;
@@ -437,8 +453,9 @@ class LoginController extends GetxController {
   Future<void> deleteBackupFromDrive(GoogleAuthClient client) async {
     try {
       final driveApi = drive.DriveApi(client);
-      final fileList = await driveApi.files
-          .list(q: "name='$driveBackupFileName' and trashed=false");
+      final fileList = await driveApi.files.list(
+        q: "name='$driveBackupFileName' and trashed=false",
+      );
       if (fileList.files != null && fileList.files!.isNotEmpty) {
         final backupFile = fileList.files!.first;
         await driveApi.files.delete(backupFile.id!);
@@ -461,6 +478,8 @@ class LoginController extends GetxController {
       await Hive.openBox<ExpenseModel>('expenses');
     if (!Hive.isBoxOpen('invoices'))
       await Hive.openBox<InvoiceModel>('invoices');
+    if (!Hive.isBoxOpen('hearings'))
+      await Hive.openBox<hearingModel>('hearings');
   }
 }
 

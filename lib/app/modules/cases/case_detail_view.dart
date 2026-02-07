@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:legalsteward/app/modules/cases/History/add_hearing.dart';
 import 'package:legalsteward/app/modules/cases/add_cases_view.dart';
 import 'package:open_file/open_file.dart';
 
 import '../../data/models/case_model.dart';
+import '../../data/models/hearing_model.dart';
+import 'History/hearing_view.dart';
 
 class CaseDetailView extends StatelessWidget {
   final CaseModel caseData;
+
+
+
 
   const CaseDetailView({super.key, required this.caseData});
 
@@ -28,6 +35,12 @@ class CaseDetailView extends StatelessWidget {
     );
 
     if (confirmed == true) {
+      final box = Hive.box<hearingModel>('hearings');
+      final toDelete = box.values.where((h) => h.caseId == caseData.id).toList();
+      for (final h in toDelete) {
+        await h.delete();
+      }
+
       await caseData.delete();
       Get.back(); // back to list
       Get.snackbar('Deleted', 'Case removed successfully');
@@ -35,13 +48,21 @@ class CaseDetailView extends StatelessWidget {
   }
 
   void _editCase() {
-    Get.off(() => AddCaseView(existingCase: caseData))!.then((result) {
+    Get.to(() => AddCaseView(existingCase: caseData))!.then((result) {
       if (result == 'updated') {
         // print("should go back to tab");
-        Get.back(); // Now this pops CaseDetailView
+        // Get.back(); // Now this pops CaseDetailView
       }
     });
   }
+  // void _addHearing() {
+  //   Get.off(() => AddHearingView(caseData: caseData))!.then((result) {
+  //     if (result == 'hearing_added') {
+  //       // print("should go back to tab");
+  //       // Get.back(); // Now this pops CaseDetailView
+  //     }
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +80,12 @@ class CaseDetailView extends StatelessWidget {
             icon: const Icon(Icons.edit),
             tooltip: 'Edit Case',
           ),
+          // IconButton(
+          //   onPressed: _addHearing,
+          //   icon: const Icon(Icons.add),
+          //   tooltip: 'Add Hearing',
+          // ),
+
         ],
       ),
       body: Container(
@@ -76,6 +103,7 @@ class CaseDetailView extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
+            spacing: 16,
             children: [
               // Header Section with Case Title
               Container(
@@ -138,7 +166,9 @@ class CaseDetailView extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              // const SizedBox(height: 24),
+
+              // ElevatedButton(onPressed: (){Get.to(() => HearingHistoryView(caseData: caseData));}, child: const Text("See History")),
 
               // Basic Information Section
               _buildInfoSection(
@@ -162,7 +192,7 @@ class CaseDetailView extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              // const SizedBox(height: 20),
 
               // Vakalat Details Section
               if (caseData.vakalatMembers != null &&
@@ -228,7 +258,7 @@ class CaseDetailView extends StatelessWidget {
                   ],
                 ),
 
-              const SizedBox(height: 20),
+              // const SizedBox(height: 20),
 
               // Parties Section
               _buildExpandableSection(
@@ -267,7 +297,7 @@ class CaseDetailView extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              // const SizedBox(height: 20),
 
               // Attachments Section
               if (caseData.attachedFiles != null &&
@@ -322,7 +352,7 @@ class CaseDetailView extends StatelessWidget {
                   ],
                 ),
 
-              const SizedBox(height: 20),
+              // const SizedBox(height: 20),
 
               // Notes Section
               if (caseData.notes.isNotEmpty)
@@ -383,10 +413,10 @@ class CaseDetailView extends StatelessWidget {
                   ),
                 ),
 
-              const SizedBox(height: 20),
+              // const SizedBox(height: 20),
 
               // Important Dates Section
-              _buildInfoSection(
+              _buildHistoryInfoSection(
                 context,
                 'Hearing Date',
                 Icons.event,
@@ -397,6 +427,17 @@ class CaseDetailView extends StatelessWidget {
                       isHighlighted: true),
                 ],
               ),
+              // const SizedBox(height: 32),
+              // if(caseData.hearingDates != null && caseData.hearingDates!.isNotEmpty)  
+              // _buildInfoSection(context, 'Previous Hearings', Icons.history, Colors.blue, [
+              //   ...caseData.hearingDates!.map((date) => _buildDateRow(
+              //         context,
+              //         Icons.check_circle,
+              //         'Hearing Date',
+              //         date,
+              //       )),
+              // ]),
+
               const SizedBox(height: 32),
 
               // Action Buttons
@@ -495,6 +536,71 @@ class CaseDetailView extends StatelessWidget {
                   color: color,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+  Widget _buildHistoryInfoSection(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    List<Widget> children,
+  ) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Spacer() ,
+              GestureDetector(
+                onTap: (){Get.to(() => HearingHistoryView(caseData: caseData));},
+                child: Text(
+                  "See History",
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              )
             ],
           ),
           const SizedBox(height: 16),

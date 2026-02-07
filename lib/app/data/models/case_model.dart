@@ -65,6 +65,9 @@ class CaseModel extends HiveObject {
   @HiveField(19)
   String? registrationNo;
 
+  @HiveField(20)
+  List<DateTime>? hearingDates;
+
   CaseModel({
     required this.id,
     required this.title,
@@ -86,5 +89,6 @@ class CaseModel extends HiveObject {
     this.filingDate,
     this.vakalatDate,
     this.registrationNo,
+    this.hearingDates,
   });
 }

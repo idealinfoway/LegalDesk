@@ -37,13 +37,14 @@ class CaseModelAdapter extends TypeAdapter<CaseModel> {
       filingDate: fields[17] as DateTime?,
       vakalatDate: fields[18] as DateTime?,
       registrationNo: fields[19] as String?,
+      hearingDates: (fields[20] as List?)?.cast<DateTime>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, CaseModel obj) {
     writer
-      ..writeByte(20)
+      ..writeByte(21)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -83,7 +84,9 @@ class CaseModelAdapter extends TypeAdapter<CaseModel> {
       ..writeByte(18)
       ..write(obj.vakalatDate)
       ..writeByte(19)
-      ..write(obj.registrationNo);
+      ..write(obj.registrationNo)
+      ..writeByte(20)
+      ..write(obj.hearingDates);
   }
 
   @override
