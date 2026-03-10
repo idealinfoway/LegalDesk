@@ -38,4 +38,4 @@ class UserModel extends HiveObject {
     this.photoUrl = '',
     required this.createdAt,
   });
-} 
+}

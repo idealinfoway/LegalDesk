@@ -14,7 +14,7 @@ import 'app/data/models/time_entry_model.dart';
 import 'app/data/models/user_model.dart';
 import 'app/routes/app_routes.dart';
 import 'app/theme/app_theme.dart';
-import 'app/services/notification_service.dart';
+// import 'app/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,8 +40,8 @@ void main() async {
   await Hive.openBox<hearingModel>('hearings');
   await Hive.openBox<ClientModel>('clients');
   await Hive.openBox<TimeEntryModel>('time_entries');
-  await Hive.openBox<ExpenseModel>('expenses'); 
-  await Hive.openBox<UserModel>('user');
+  await Hive.openBox<ExpenseModel>('expenses');  
+  await Hive.openBox<UserModel>('user');    
 
   // Schedule a test notification 15 seconds after launch to validate setup.
   // _scheduleStartupTestNotification();

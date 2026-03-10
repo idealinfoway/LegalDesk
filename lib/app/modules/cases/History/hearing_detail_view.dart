@@ -144,19 +144,40 @@ class _HearingDetailViewState extends State<HearingDetailView> {
       ),
       confirm: ElevatedButton(
         onPressed: () async {
-          await widget.hearing.delete();
-          Get.back(); // Close dialog
-          Get.back(); // Pop detail view
-          Get.snackbar(
-            "Deleted",
-            "Hearing deleted successfully",
-            backgroundColor: Colors.red[100],
-            colorText: Colors.red[900],
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            snackPosition: SnackPosition.BOTTOM,
-            margin: const EdgeInsets.all(16),
-            borderRadius: 8,
-          );
+          try {
+            // Check if the object is still in the box before deleting
+            if (widget.hearing.isInBox) {
+              await widget.hearing.delete();
+              Get.back(); // Close dialog
+              Get.back(); // Pop detail view
+              Get.snackbar(
+                "Deleted",
+                "Hearing deleted successfully",
+                backgroundColor: Colors.red[100],
+                colorText: Colors.red[900],
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                snackPosition: SnackPosition.BOTTOM,
+                margin: const EdgeInsets.all(16),
+                borderRadius: 8,
+              );
+            } else {
+              // Object already deleted
+              Get.back(); // Close dialog
+              Get.back(); // Pop detail view
+            }
+          } catch (e) {
+            Get.back(); // Close dialog
+            Get.snackbar(
+              "Error",
+              "Failed to delete hearing: ${e.toString()}",
+              backgroundColor: Colors.red[100],
+              colorText: Colors.red[900],
+              icon: const Icon(Icons.error_outline, color: Colors.red),
+              snackPosition: SnackPosition.BOTTOM,
+              margin: const EdgeInsets.all(16),
+              borderRadius: 8,
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red,

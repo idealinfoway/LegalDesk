@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:legalsteward/app/modules/cases/History/add_hearing.dart';
 import 'package:legalsteward/app/modules/cases/add_cases_view.dart';
+import 'package:legalsteward/app/utils/font_styles.dart';
 import 'package:open_file/open_file.dart';
 
 import '../../data/models/case_model.dart';
@@ -590,14 +591,18 @@ class CaseDetailView extends StatelessWidget {
                 ),
               ),
               Spacer() ,
-              GestureDetector(
-                onTap: (){Get.to(() => HearingHistoryView(caseData: caseData));},
+              ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(Color.fromARGB(255,0, 94, 243)),
+                  
+                ),
+                onPressed: (){Get.to(() => HearingHistoryView(caseData: caseData));},
                 child: Text(
                   "See History",
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
+                  style: FontStyles.poppins().copyWith(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               )

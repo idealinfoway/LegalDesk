@@ -9,7 +9,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
-
 import '../../data/models/case_model.dart';
 import '../../services/notification_service.dart';
 import '../../data/models/client_model.dart';

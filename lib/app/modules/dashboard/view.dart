@@ -453,29 +453,29 @@ class DashboardView extends GetView<DashBoardController> {
                           ),
                         ),
                       const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.backup),
-                        label: Text(
-                          connected ? 'Backup Now' : 'No Internet',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: Size(double.infinity, 40),
-                          backgroundColor: connected
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.grey,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        onPressed: (connected && !controller.isBackingUp.value)
-                            ? () async {
-                                controller.isBackingUp.value = true;
-                                await _handleBackup(context);
-                                await Future.delayed(const Duration(seconds: 4));
-                                controller.isBackingUp.value = false;
-                              }
-                            : null,
-                      ),
+                      // ElevatedButton.icon(
+                      //   icon: const Icon(Icons.backup),
+                      //   label: Text(
+                      //     connected ? 'Backup Now' : 'No Internet',
+                      //   ),
+                      //   style: ElevatedButton.styleFrom(
+                      //     minimumSize: Size(double.infinity, 40),
+                      //     backgroundColor: connected
+                      //         ? Theme.of(context).colorScheme.primary
+                      //         : Colors.grey,
+                      //     padding: const EdgeInsets.symmetric(vertical: 16),
+                      //     textStyle: const TextStyle(
+                      //         fontSize: 18, fontWeight: FontWeight.bold),
+                      //   ),
+                      //   onPressed: (connected && !controller.isBackingUp.value)
+                      //       ? () async {
+                      //           controller.isBackingUp.value = true;
+                      //           await _handleBackup(context);
+                      //           await Future.delayed(const Duration(seconds: 4));
+                      //           controller.isBackingUp.value = false;
+                      //         }
+                      //       : null,
+                      // ),
                     ],
                   );
                 }),
