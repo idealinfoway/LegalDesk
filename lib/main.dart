@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,38 +18,78 @@ import 'app/data/models/user_model.dart';
 import 'app/routes/app_routes.dart';
 import 'app/theme/app_theme.dart';
 // import 'app/services/notification_service.dart';
-
+bool _isInitialized = false;
 void main() async {
+  runZonedGuarded(() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      _logError(details.exception, details.stack);
+    };
+
+    PlatformDispatcher.instance.onError = (error, stack) {
+      _logError(error, stack);
+      return true; // prevent crash
+    };
   
-  await Firebase.initializeApp();
+    // await initializeApp();
+    // _scheduleStartupTestNotification(); // Optional: schedule a test notification on startup
+    runApp(const MyApp());
+  }, (error, stack) {
+    _logError(error, stack);
+  });
   
-  await Hive.initFlutter();
-  // Local notifications setup
-  // await NotificationService.init();
-  MobileAds.instance.initialize();
-  Hive.registerAdapter(CaseModelAdapter());
-  Hive.registerAdapter(hearingModelAdapter());
-  Hive.registerAdapter(ClientModelAdapter());
-  Hive.registerAdapter(TaskModelAdapter());
-  Hive.registerAdapter(TimeEntryModelAdapter());
-  Hive.registerAdapter(ExpenseModelAdapter());
-  Hive.registerAdapter(InvoiceModelAdapter());
-  Hive.registerAdapter(UserModelAdapter());
+  
+}
 
-  await Hive.openBox<InvoiceModel>('invoices');
-  await Hive.openBox<TaskModel>('tasks');
-  await Hive.openBox<CaseModel>('cases');
-  await Hive.openBox<hearingModel>('hearings');
-  await Hive.openBox<ClientModel>('clients');
-  await Hive.openBox<TimeEntryModel>('time_entries');
-  await Hive.openBox<ExpenseModel>('expenses');  
-  await Hive.openBox<UserModel>('user');    
+Future<void> initializeApp() async {
+  if (_isInitialized) return;
+  try {
+    await Firebase.initializeApp();
 
-  // Schedule a test notification 15 seconds after launch to validate setup.
-  // _scheduleStartupTestNotification();
+    await Hive.initFlutter();
 
-  runApp(const MyApp());
+    // Register adapters BEFORE opening boxes
+    Hive.registerAdapter(CaseModelAdapter());
+    Hive.registerAdapter(hearingModelAdapter());
+    Hive.registerAdapter(ClientModelAdapter());
+    Hive.registerAdapter(TaskModelAdapter());
+    Hive.registerAdapter(TimeEntryModelAdapter());
+    Hive.registerAdapter(ExpenseModelAdapter());
+    Hive.registerAdapter(InvoiceModelAdapter());
+    Hive.registerAdapter(UserModelAdapter());
+
+    // Open boxes (parallel = faster startup)
+    await Future.wait([
+      Hive.openBox<InvoiceModel>('invoices'),
+      Hive.openBox<TaskModel>('tasks'),
+      Hive.openBox<CaseModel>('cases'),
+      Hive.openBox<hearingModel>('hearings'),
+      Hive.openBox<ClientModel>('clients'),
+      Hive.openBox<TimeEntryModel>('time_entries'),
+      Hive.openBox<ExpenseModel>('expenses'),
+      Hive.openBox<UserModel>('user'),
+    ]);
+
+    MobileAds.instance.initialize();
+
+  } catch (e, stack) {
+    _logError(e, stack);
+
+    // Optional: fail fast OR allow app to run with fallback
+    rethrow; 
+  }
+  _isInitialized = true;
+  
+}
+
+void _logError(Object error, StackTrace? stack) {
+  // Replace with Firebase Crashlytics later
+  debugPrint('ERROR: $error');
+  if (stack != null) {
+    debugPrint(stack.toString());
+  }
 }
 
 /// Schedules a test notification for tomorrow at 9 AM to verify

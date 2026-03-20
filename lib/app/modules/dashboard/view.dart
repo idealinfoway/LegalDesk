@@ -27,71 +27,38 @@ class DashboardView extends GetView<DashBoardController> {
 
   Future<void> _handleBackup(BuildContext context) async {
     final loginController = Get.find<LoginController>();
-    BuildContext currentContext = context;
-
-    // Record when backup starts
     final startTime = DateTime.now();
 
-    // Show the loading dialog
-    try {
-      Get.dialog(
-        // context: currentContext,
-        barrierDismissible: false,
-        // builder: (_) =>
-        const AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Backing up... Please wait'),
-            ],
-          ),
+    // Show loading
+    Get.dialog(
+      barrierDismissible: false,
+      const AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Backing up... Please wait'),
+          ],
         ),
-      );
-    } catch (_) {}
+      ),
+    );
 
     try {
-      GoogleSignInAccount? googleUser;
+      // Step 1: Auth
+      final googleUser = await loginController.googleSignIn.signInSilently();
 
-      try {
-        googleUser = await loginController.googleSignIn.signInSilently();
-        if (googleUser == null) {
-          return _showError(currentContext,
-              'Please sign in to Google Drive first', startTime);
-        }
-      } on PlatformException catch (e) {
-        if (e.code == 'network_error') {
-          return _showError(currentContext,
-              'No internet connection. Please check your network.', startTime);
-        }
-        rethrow;
-      } on SocketException {
-        return _showError(
-            currentContext, 'Network connection failed.', startTime);
-      } on TimeoutException {
-        return _showError(currentContext, 'Connection timed out.', startTime);
+      if (googleUser == null) {
+        throw Exception('sign_in_required');
       }
 
-      try {
-        final authHeaders = await googleUser.authHeaders;
-        final client = GoogleAuthClient(authHeaders);
-        await loginController.backupToDrive(client);
-      } on PlatformException catch (e) {
-        if (e.code == 'network_error') {
-          return _showError(
-              currentContext, 'Network error during backup.', startTime);
-        }
-        rethrow;
-      } on SocketException {
-        return _showError(
-            currentContext, 'Network error during backup.', startTime);
-      } on TimeoutException {
-        return _showError(currentContext, 'Backup timed out.', startTime);
-      } on HttpException {
-        return _showError(currentContext, 'Server error occurred.', startTime);
-      }
+      // Step 2: Backup
+      final authHeaders = await googleUser.authHeaders;
+      final client = GoogleAuthClient(authHeaders);
 
+      await loginController.backupToDrive(client);
+
+      // Success
       await _closeDialogAfterMinimumDuration(startTime);
       _showSnackbar('Backup completed successfully!', isError: false);
     } catch (e) {
@@ -107,7 +74,10 @@ class DashboardView extends GetView<DashBoardController> {
   }
 
   void _showError(
-      BuildContext context, String message, DateTime startTime) async {
+    BuildContext context,
+    String message,
+    DateTime startTime,
+  ) async {
     await _closeDialogAfterMinimumDuration(startTime);
     _showSnackbar(message, isError: true);
   }
@@ -124,26 +94,42 @@ class DashboardView extends GetView<DashBoardController> {
   }
 
   void _showSnackbar(String message, {required bool isError}) {
-    Get.snackbar(
-      isError ? 'Error' : 'Success',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
-      colorText: Colors.white,
-      duration: Duration(seconds: isError ? 4 : 2),
-      icon: Icon(
-        isError ? Icons.error_outline : Icons.check_circle_outline,
-        color: Colors.white,
-      ),
-      margin: const EdgeInsets.all(8),
-      borderRadius: 8,
-    );
-  }
+  Get.snackbar(
+    isError ? 'Backup Failed' : 'Success',
+    message,
+    snackPosition: SnackPosition.BOTTOM,
+    backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
+    colorText: Colors.white,
+    duration: Duration(seconds: isError ? 4 : 2),
+    icon: Icon(
+      isError ? Icons.error_outline : Icons.check_circle_outline,
+      color: Colors.white,
+    ),
+    margin: const EdgeInsets.all(8),
+    borderRadius: 8,
+
+    // 👇 Add retry ONLY for errors
+    mainButton: isError
+        ? TextButton(
+            onPressed: () {
+              // Get.back(); // close snackbar
+              _handleBackup(Get.context!);
+            },
+            child: const Text(
+              'Retry',
+              style: TextStyle(color: Colors.white),
+            ),
+          )
+        : null,
+  );
+}
 
   String _mapError(dynamic error) {
     final message = error.toString().toLowerCase();
     if (message.contains('socket') || message.contains('network')) {
       return 'Network connection issue. Please check your internet.';
+    } else if (message.contains('sign_in_required')) {
+      return 'Please sign in to Google Drive first.';
     } else if (message.contains('timeout')) {
       return 'Request timed out. Please try again.';
     } else if (message.contains('permission')) {
@@ -163,72 +149,75 @@ class DashboardView extends GetView<DashBoardController> {
 
     return Scaffold(
       appBar: AppBar(
-          centerTitle: true,
-          title: Text(
-            'Dashboard',
-            style: Tools.oswaldValue(context).copyWith(color: Colors.white),
+        centerTitle: true,
+        title: Text(
+          'Dashboard',
+          style: Tools.oswaldValue(context).copyWith(color: Colors.white),
+        ),
+        leading: IconButton(
+          onPressed: () {
+            Get.to(() => const ProfilePage());
+          },
+          icon: Icon(Icons.person_outline),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.backup),
+            // a
+            // style: ElevatedButton.styleFrom(
+            //   minimumSize: Size(double.infinity, 40),
+            //   backgroundColor:
+            //       Theme.of(context).colorScheme.primary,
+
+            //   padding: const EdgeInsets.symmetric(vertical: 16),
+            //   textStyle: const TextStyle(
+            //       fontSize: 18, fontWeight: FontWeight.bold),
+            // ),
+            onPressed:
+                (controller.isConnected.value && !controller.isBackingUp.value)
+                ? () async {
+                    controller.isBackingUp.value = true;
+                    await _handleBackup(context);
+                    // await Future.delayed(const Duration(seconds: 4));
+                    controller.isBackingUp.value = false;
+                  }
+                : null,
           ),
-          leading: IconButton(
-              onPressed: () {
-                Get.to(() => const ProfilePage());
-              },
-              icon: Icon(Icons.person_outline)),
-          actions: [
-            IconButton(
-                        icon: const Icon(Icons.backup),
-                        // a
-                        // style: ElevatedButton.styleFrom(
-                        //   minimumSize: Size(double.infinity, 40),
-                        //   backgroundColor: 
-                        //       Theme.of(context).colorScheme.primary,
-                              
-                        //   padding: const EdgeInsets.symmetric(vertical: 16),
-                        //   textStyle: const TextStyle(
-                        //       fontSize: 18, fontWeight: FontWeight.bold),
-                        // ),
-                        onPressed: (controller.isConnected.value && !controller.isBackingUp.value)
-                            ? () async {
-                                controller.isBackingUp.value = true;
-                                await _handleBackup(context);
-                                await Future.delayed(const Duration(seconds: 4));
-                                controller.isBackingUp.value = false;
-                              }
-                            : null,
-                      ),
-            PopupMenuButton(
-                icon: Icon(Icons.more_vert),
-                onSelected: (value) {
-                  if (value == 'About') {
-                    Get.to(() => AboutPage());
-                  } else if (value == 'Sign Out') {
-                    final loginController = Get.isRegistered<LoginController>()
-                        ? Get.find<LoginController>()
-                        : Get.put(LoginController(), permanent: true);
-                    loginController.signOut();
-                  } else if (value == 'Share') {
-                    SharePlus.instance.share(
-                      ShareParams(
-                        subject: 'Check out this App!',
-                        text:
-                            'Check out my app: https://play.google.com/store/apps/details?id=mhc.file.mhcdb',
-                        title: 'Check out this App',
-                      ),
-                    );
-                  } else if (value == 'Feedback') {
-                    FeedbackDialog.show(context);
-                  }
-                   else {
-                    SystemNavigator.pop();
-                  }
-                },
-                itemBuilder: (context) => [
-                      PopupMenuItem(value: 'About', child: Text('About')),
-                      PopupMenuItem(value: 'Feedback', child: Text('Feedback')),
-                      PopupMenuItem(value: 'Share', child: Text('Share')),
-                      PopupMenuItem(value: 'Sign Out', child: Text('Sign Out')),
-                      PopupMenuItem(value: 'Exit', child: Text('Exit')),
-                    ])
-          ]),
+          PopupMenuButton(
+            icon: Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'About') {
+                Get.to(() => AboutPage());
+              } else if (value == 'Sign Out') {
+                final loginController = Get.isRegistered<LoginController>()
+                    ? Get.find<LoginController>()
+                    : Get.put(LoginController(), permanent: true);
+                loginController.signOut();
+              } else if (value == 'Share') {
+                SharePlus.instance.share(
+                  ShareParams(
+                    subject: 'Check out this App!',
+                    text:
+                        'Check out my app: https://play.google.com/store/apps/details?id=mhc.file.mhcdb',
+                    title: 'Check out this App',
+                  ),
+                );
+              } else if (value == 'Feedback') {
+                FeedbackDialog.show(context);
+              } else {
+                SystemNavigator.pop();
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(value: 'About', child: Text('About')),
+              PopupMenuItem(value: 'Feedback', child: Text('Feedback')),
+              PopupMenuItem(value: 'Share', child: Text('Share')),
+              PopupMenuItem(value: 'Sign Out', child: Text('Sign Out')),
+              PopupMenuItem(value: 'Exit', child: Text('Exit')),
+            ],
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -241,8 +230,9 @@ class DashboardView extends GetView<DashBoardController> {
                     children: <Widget>[
                       Expanded(
                         child: ValueListenableBuilder(
-                          valueListenable:
-                              Hive.box<CaseModel>('cases').listenable(),
+                          valueListenable: Hive.box<CaseModel>(
+                            'cases',
+                          ).listenable(),
                           builder: (context, Box<CaseModel> caseBox, _) {
                             return DashboardCard(
                               title: 'Cases',
@@ -256,8 +246,9 @@ class DashboardView extends GetView<DashBoardController> {
                       ),
                       Expanded(
                         child: ValueListenableBuilder(
-                          valueListenable:
-                              Hive.box<ClientModel>('clients').listenable(),
+                          valueListenable: Hive.box<ClientModel>(
+                            'clients',
+                          ).listenable(),
                           builder: (context, Box<ClientModel> clientBox, _) {
                             return DashboardCard(
                               title: 'Clients',
@@ -327,25 +318,31 @@ class DashboardView extends GetView<DashBoardController> {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary
-                                        .withAlpha((0.05 * 255).toInt()),
+                                    color: theme.colorScheme.primary.withAlpha(
+                                      (0.05 * 255).toInt(),
+                                    ),
                                     borderRadius: BorderRadius.circular(16),
-                                    border:
-                                        Border.all(color: theme.colorScheme.primary),
+                                    border: Border.all(
+                                      color: theme.colorScheme.primary,
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(Icons.add_task,
-                                          color: Colors.blueAccent),
+                                      const Icon(
+                                        Icons.add_task,
+                                        color: Colors.blueAccent,
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           "No pending tasks - Add Task",
-                                          style: theme.textTheme.bodyLarge?.copyWith(
-                                            color: theme.colorScheme.primary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                         ),
                                       ),
                                     ],
@@ -373,8 +370,9 @@ class DashboardView extends GetView<DashBoardController> {
                                       borderRadius: BorderRadius.circular(16),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black
-                                              .withAlpha((0.05 * 255).toInt()),
+                                          color: Colors.black.withAlpha(
+                                            (0.05 * 255).toInt(),
+                                          ),
                                           blurRadius: 8,
                                           offset: const Offset(0, 4),
                                         ),
@@ -382,20 +380,24 @@ class DashboardView extends GetView<DashBoardController> {
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(Icons.check_circle_outline,
-                                            color: theme.colorScheme.primary),
+                                        Icon(
+                                          Icons.check_circle_outline,
+                                          color: theme.colorScheme.primary,
+                                        ),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Text(
                                             task.title,
                                             style: theme.textTheme.titleMedium
                                                 ?.copyWith(
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
                                           ),
                                         ),
-                                        const Icon(Icons.arrow_forward_ios,
-                                            size: 16),
+                                        const Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 16,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -410,8 +412,10 @@ class DashboardView extends GetView<DashBoardController> {
                   const SizedBox(height: 32),
                   // adhere
                   // RefreshableBannerAdWidget(adUnitId: 'ca-app-pub-3940256099942544/9214589741'),
-                  RefreshableBannerAdWidget(adUnitId: AdConstant.bannerAdUnitId),
-                  
+                  RefreshableBannerAdWidget(
+                    adUnitId: AdConstant.bannerAdUnitId,
+                  ),
+
                   const SizedBox(height: 42),
                 ],
               ),
@@ -431,7 +435,9 @@ class DashboardView extends GetView<DashBoardController> {
                       if (!connected)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red,
                             borderRadius: BorderRadius.circular(12),

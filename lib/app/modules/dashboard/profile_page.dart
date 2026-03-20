@@ -12,7 +12,8 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
+class _ProfilePageState extends State<ProfilePage>
+    with SingleTickerProviderStateMixin {
   late Box userBox;
   UserModel? user;
   bool isEditing = false;
@@ -34,7 +35,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       user = userBox.getAt(0);
       _setControllersFromUser();
     }
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -217,7 +218,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -437,7 +441,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -596,9 +603,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
       decoration: BoxDecoration(
         color: theme.colorScheme.primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.1),
-        ),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -608,11 +613,7 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               color: theme.colorScheme.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: theme.colorScheme.primary,
-              size: 24,
-            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -648,7 +649,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red.shade600, size: 28),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.red.shade600,
+              size: 28,
+            ),
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
@@ -680,7 +685,11 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.red.shade700, size: 20),
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.red.shade700,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -720,24 +729,25 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
 
     if (confirm == true) {
-      Get.dialog(
-        barrierDismissible: false,
-        const _ClearDataLoadingDialog(),
-      );
+      Get.dialog(barrierDismissible: false, const _ClearDataLoadingDialog());
 
       try {
         final loginController = Get.find<LoginController>();
+
         final googleUser = await loginController.googleSignIn.signInSilently();
-        
+
+        // Step 1: Delete local data FIRST
+        await Hive.deleteFromDisk();
+
+        // Step 2: Delete cloud backup (if user is signed in)
         if (googleUser != null) {
           final authHeaders = await googleUser.authHeaders;
           final client = GoogleAuthClient(authHeaders);
+
           await loginController.deleteBackupFromDrive(client);
-          await loginController.restoreFromDrive(client);
         }
 
-        await Hive.deleteFromDisk();
-        await loginController.ensureAllBoxesOpen();
+        // Step 3: Sign out
         await loginController.signOut();
 
         if (Navigator.of(context, rootNavigator: true).canPop()) {
@@ -809,17 +819,17 @@ class _ClearDataLoadingDialog extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Clearing all your data...',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               'Please wait while we securely erase your information',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
