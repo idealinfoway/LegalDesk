@@ -223,7 +223,7 @@ class CasesView extends StatelessWidget {
                         return Column(
                           children: [
                             _buildCaseCard(c, theme, context),
-                            SizedBox(height: 10),
+                            SizedBox(height: index == cases.length -1 ? 100 : 10),
                             // NativeAdExample(),
                           ],
                         );
@@ -373,16 +373,22 @@ class CasesView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            
             children: [
               Row(
+                mainAxisSize: MainAxisSize.max,
+
                 children: [
-                  Text(
-                    c.title,
-                    style: TextStyle(
-                      fontFamily: 'oswald',
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.titleLarge!.color,
+                  Flexible(
+                    fit: FlexFit.tight,
+                    child: Text(
+                      c.title,
+                      style: TextStyle(
+                        fontFamily: 'oswald',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: theme.textTheme.titleLarge!.color,
+                      ),
                     ),
                   ),
                   // if(!c.nextHearing.isAfter(DateTime.now()) && c.status == 'Pending')
@@ -459,6 +465,7 @@ class CasesView extends StatelessWidget {
                     ),
                 ],
               ),
+              
             ],
           ),
         ),

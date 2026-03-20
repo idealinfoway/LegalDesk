@@ -16,8 +16,8 @@ class CalendarView extends StatefulWidget {
 }
 
 class _CalendarViewState extends State<CalendarView> {
-  late final Box<CaseModel> caseBox;
-  late final Box<TaskModel> taskBox;
+  Box<CaseModel>? caseBox;
+  Box<TaskModel>? taskBox;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<CaseModel>> _caseEvents = {};
@@ -29,14 +29,29 @@ class _CalendarViewState extends State<CalendarView> {
   @override
   void initState() {
     super.initState();
-    caseBox = Hive.box<CaseModel>('cases');
-    taskBox = Hive.box<TaskModel>('tasks');
     _selectedDay = _focusedDay;
+    _initializeBoxesAndEvents();
+  }
+
+  Future<void> _initializeBoxesAndEvents() async {
+    caseBox = Hive.isBoxOpen('cases')
+        ? Hive.box<CaseModel>('cases')
+        : await Hive.openBox<CaseModel>('cases');
+
+    taskBox = Hive.isBoxOpen('tasks')
+        ? Hive.box<TaskModel>('tasks')
+        : await Hive.openBox<TaskModel>('tasks');
+
+    if (!mounted) return;
     _loadEvents();
   }
 
   void _loadEvents() {
-    final cases = caseBox.values.toList();
+    final localCaseBox = caseBox;
+    final localTaskBox = taskBox;
+    if (localCaseBox == null || localTaskBox == null) return;
+
+    final cases = localCaseBox.values.toList();
     final Map<DateTime, List<CaseModel>> caseEvents = {};
     for (var c in cases) {
       if (c.nextHearing != null) {
@@ -47,7 +62,7 @@ class _CalendarViewState extends State<CalendarView> {
     }
 
      
-    final tasks = taskBox.values.toList();
+    final tasks = localTaskBox.values.toList();
     final Map<DateTime, List<TaskModel>> taskEvents = {};
 
     for (var task in tasks) {
@@ -262,12 +277,21 @@ class _CalendarViewState extends State<CalendarView> {
             ),
           ),
           Expanded(
-            child: ValueListenableBuilder(
-              valueListenable: caseBox.listenable(),
-              builder: (context, Box<CaseModel> caseBoxValue, _) {
+            child: Builder(
+              builder: (context) {
+                final localCaseBox = caseBox;
+                final localTaskBox = taskBox;
+
+                if (localCaseBox == null || localTaskBox == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
                 return ValueListenableBuilder(
-                  valueListenable: taskBox.listenable(),
-                  builder: (context, Box<TaskModel> taskBoxValue, __) {
+                  valueListenable: localCaseBox.listenable(),
+                  builder: (context, Box<CaseModel> caseBoxValue, _) {
+                    return ValueListenableBuilder(
+                      valueListenable: localTaskBox.listenable(),
+                      builder: (context, Box<TaskModel> taskBoxValue, __) {
                     final cases =
                         _getCasesForDay(_selectedDay ?? DateTime.now());
                     final tasks =
@@ -402,6 +426,8 @@ class _CalendarViewState extends State<CalendarView> {
                               )),
                         ],
                       ],
+                    );
+                      },
                     );
                   },
                 );

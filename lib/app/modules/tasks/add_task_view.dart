@@ -22,7 +22,24 @@ class _AddTaskViewState extends State<AddTaskView> {
   bool _hasReminder = false;
   String? _selectedCaseId;
 
-  final caseList = Hive.box<CaseModel>('cases').values.toList();
+  List<CaseModel> caseList = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCases();
+  }
+
+  Future<void> _loadCases() async {
+    final box = Hive.isBoxOpen('cases')
+        ? Hive.box<CaseModel>('cases')
+        : await Hive.openBox<CaseModel>('cases');
+
+    if (!mounted) return;
+    setState(() {
+      caseList = box.values.toList();
+    });
+  }
 
   Future<void> _pickDateTime() async {
   final date = await showDatePicker(
@@ -68,7 +85,7 @@ class _AddTaskViewState extends State<AddTaskView> {
     isCompleted: false,
   );
 
-  await Hive.box<TaskModel>('tasks').add(task);
+  await controller.addTask(task);
 
   // ⏰ Schedule Notification
   // if (_hasReminder) {

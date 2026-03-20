@@ -113,8 +113,8 @@ class TaskDetailView extends StatelessWidget {
                             value: updatedTask.isCompleted,
                             onChanged: (val) async {
                               updatedTask.isCompleted = val;
-                              await updatedTask.save();
-                              controller.loadTasks();
+                              await controller.updateTask(updatedTask);
+                              await controller.loadTasks();
                               Get.snackbar(
                                 "Task Updated",
                                 val ? "Marked as completed" : "Marked as incomplete",

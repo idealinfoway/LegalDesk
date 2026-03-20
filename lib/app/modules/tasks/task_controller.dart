@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
@@ -5,43 +7,71 @@ import '../../data/models/task_model.dart';
 
 class TaskController extends GetxController {
   var tasks = <TaskModel>[].obs;
-  late Box<TaskModel> taskBox;
+  Box<TaskModel>? _taskBox;
+  StreamSubscription<BoxEvent>? _taskBoxSubscription;
 
   @override
   void onInit() {
     super.onInit();
-    taskBox = Hive.box<TaskModel>('tasks');
-
-    // Load tasks initially
-    loadTasks();
-
-    // Listen for any changes in the box and reload tasks automatically
-    taskBox.watch().listen((event) {
-      loadTasks();
-    });
+    _initialize();
   }
 
-  void loadTasks() {
-    final allTasks = taskBox.values.toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-    tasks.assignAll(allTasks);
-    // print('Loaded ${tasks.length} tasks');
+  @override
+  void onClose() {
+    _taskBoxSubscription?.cancel();
+    super.onClose();
   }
 
-  void addTask(TaskModel task) async {
-    await taskBox.add(task);
-    // loadTasks(); // not necessary now, watcher will handle reload
+  Future<void> _initialize() async {
+    await _ensureTaskBoxOpen();
+    await loadTasks();
   }
 
-  void updateTask(TaskModel task) async {
-    await task.save(); // HiveObject has save() method
-    // loadTasks(); // watcher will pick this up
-  }
+  Future<Box<TaskModel>> _ensureTaskBoxOpen() async {
+    final box = Hive.isBoxOpen('tasks')
+        ? Hive.box<TaskModel>('tasks')
+        : await Hive.openBox<TaskModel>('tasks');
 
-  void deleteSelected(List<TaskModel> selected) {
-    for (var task in selected) {
-      task.delete();
+    if (!identical(_taskBox, box)) {
+      await _taskBoxSubscription?.cancel();
+      _taskBox = box;
+      _taskBoxSubscription = box.watch().listen((_) {
+        loadTasks();
+      });
     }
-    // loadTasks(); // watcher will pick this up
+
+    return box;
+  }
+
+  Future<void> loadTasks() async {
+    try {
+      final box = await _ensureTaskBoxOpen();
+      final allTasks = box.values.toList()
+        ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      tasks.assignAll(allTasks);
+    } on HiveError {
+      // The box may have been closed during restore/sign-out; reopen and retry once.
+      final box = await Hive.openBox<TaskModel>('tasks');
+      final allTasks = box.values.toList()
+        ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      tasks.assignAll(allTasks);
+    }
+  }
+
+  Future<void> addTask(TaskModel task) async {
+    final box = await _ensureTaskBoxOpen();
+    await box.add(task);
+  }
+
+  Future<void> updateTask(TaskModel task) async {
+    await _ensureTaskBoxOpen();
+    await task.save();
+  }
+
+  Future<void> deleteSelected(List<TaskModel> selected) async {
+    await _ensureTaskBoxOpen();
+    for (var task in selected) {
+      await task.delete();
+    }
   }
 }

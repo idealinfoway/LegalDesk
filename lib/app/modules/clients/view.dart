@@ -206,7 +206,8 @@ class ClientsView extends StatelessWidget {
               children: [
                 Expanded(
                   child: Obx(() => DropdownButtonFormField<String>(
-                        value: controller.selectedCity.value,
+                        initialValue: controller.selectedCity.value,
+                        
                         decoration: const InputDecoration(
                           labelText: 'Filter by City',
                           border: OutlineInputBorder(),

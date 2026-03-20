@@ -10,8 +10,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/case_model.dart';
-import '../../services/notification_service.dart';
 import '../../data/models/client_model.dart';
+import '../../widgets/pdf_page_manager_sheet.dart';
 import '../clients/add_client_view.dart';
 
 enum DocumentSourceType { files, scan, camera }
@@ -650,12 +650,15 @@ class _AddCaseViewState extends State<AddCaseView> {
                         Expanded(
                           child: DropdownButtonFormField<ClientModel>(
                             value: _selectedClient,
+                            isExpanded: true,
                             items:
                                 _clients
                                     .map(
                                       (c) => DropdownMenuItem(
                                         value: c,
-                                        child: Text(c.name),
+                                        child: Text(c.name,
+                                        overflow: TextOverflow.ellipsis,
+            maxLines: 1,),
                                       ),
                                     )
                                     .toList()
@@ -1260,6 +1263,24 @@ class _AddCaseViewState extends State<AddCaseView> {
                                 style: textTheme.bodyMedium,
                               ),
                             ),
+                            if (file.toLowerCase().endsWith('.pdf'))
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit_note,
+                                  color: Colors.indigo,
+                                  size: 20,
+                                ),
+                                tooltip: 'Edit pages',
+                                onPressed: () => showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  useSafeArea: true,
+                                  builder: (_) => PdfPageManagerSheet(
+                                    pdfPath: file,
+                                    onSaved: () => setState(() {}),
+                                  ),
+                                ),
+                              ),
                             IconButton(
                               icon: const Icon(
                                 Icons.close,

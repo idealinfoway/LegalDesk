@@ -17,7 +17,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../constants/ad_constant.dart';
 import '../../data/models/case_model.dart';
 import '../../data/models/client_model.dart';
-import '../../data/models/task_model.dart';
 import '../FeedBack/feedback_diaog.dart';
 import '../tasks/task_controller.dart';
 import '../tasks/task_detail_view.dart';
@@ -160,7 +159,6 @@ class DashboardView extends GetView<DashBoardController> {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
 
-    // You can get the controller if you want, or just read directly from Hive here
     final taskController = Get.find<TaskController>();
 
     return Scaffold(
@@ -318,98 +316,93 @@ class DashboardView extends GetView<DashBoardController> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ValueListenableBuilder(
-                            valueListenable:
-                                Hive.box<TaskModel>('tasks').listenable(),
-                            builder: (context, Box<TaskModel> taskBox, _) {
-                              final tasks = taskBox.values
-                                  .where((t) => !t.isCompleted)
-                                  .toList();
-        
-                              if (tasks.isEmpty) {
+                          Obx(() {
+                            final tasks = taskController.tasks
+                                .where((t) => !t.isCompleted)
+                                .toList();
+
+                            if (tasks.isEmpty) {
+                              return GestureDetector(
+                                onTap: () => Get.toNamed('/tasks'),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary
+                                        .withAlpha((0.05 * 255).toInt()),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border:
+                                        Border.all(color: theme.colorScheme.primary),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.add_task,
+                                          color: Colors.blueAccent),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          "No pending tasks - Add Task",
+                                          style: theme.textTheme.bodyLarge?.copyWith(
+                                            color: theme.colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: tasks.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final task = tasks[index];
+
                                 return GestureDetector(
-                                  onTap: () => Get.toNamed('/tasks'),
+                                  onTap: () =>
+                                      Get.to(() => TaskDetailView(task: task)),
                                   child: Container(
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary
-                                          .withAlpha((0.05 * 255).toInt()),
+                                      color: theme.cardColor,
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                          color: theme.colorScheme.primary),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withAlpha((0.05 * 255).toInt()),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        const Icon(Icons.add_task,
-                                            color: Colors.blueAccent),
-                                        const SizedBox(width: 8),
+                                        Icon(Icons.check_circle_outline,
+                                            color: theme.colorScheme.primary),
+                                        const SizedBox(width: 12),
                                         Expanded(
                                           child: Text(
-                                            "No pending tasks — Add Task",
-                                            style:
-                                                theme.textTheme.bodyLarge?.copyWith(
-                                              color: theme.colorScheme.primary,
-                                              fontWeight: FontWeight.w600,
+                                            task.title,
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ),
+                                        const Icon(Icons.arrow_forward_ios,
+                                            size: 16),
                                       ],
                                     ),
                                   ),
                                 );
-                              }
-        
-                              return ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: tasks.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 8),
-                                itemBuilder: (context, index) {
-                                  final task = tasks[index];
-        
-                                  return GestureDetector(
-                                    onTap: () =>
-                                        Get.to(() => TaskDetailView(task: task)),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: theme.cardColor,
-                                        borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black
-                                                .withAlpha((0.05 * 255).toInt()),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.check_circle_outline,
-                                              color: theme.colorScheme.primary),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(
-                                              task.title,
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                          const Icon(Icons.arrow_forward_ios,
-                                              size: 16),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                              },
+                            );
+                          }),
                         ],
                       ),
                     ),

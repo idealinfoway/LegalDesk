@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/app_update.dart';
-import '../tasks/task_controller.dart';
 
 class DashBoardController extends GetxController{
 
@@ -53,7 +52,6 @@ class DashBoardController extends GetxController{
     // TODO: implement onInit
     print("start dashboard");
     checkForUpdate();
-    Get.put(TaskController());
     
     // Initialize connectivity listener
     _connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {

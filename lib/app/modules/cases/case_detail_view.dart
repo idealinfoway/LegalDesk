@@ -8,6 +8,7 @@ import 'package:open_file/open_file.dart';
 
 import '../../data/models/case_model.dart';
 import '../../data/models/hearing_model.dart';
+import '../../widgets/pdf_page_manager_sheet.dart';
 import 'History/hearing_view.dart';
 
 class CaseDetailView extends StatelessWidget {
@@ -333,8 +334,68 @@ class CaseDetailView extends StatelessWidget {
                               style: textTheme.bodyMedium
                                   ?.copyWith(fontWeight: FontWeight.w500),
                             ),
-                            trailing: Icon(Icons.open_in_new,
-                                color: Colors.indigo.withOpacity(0.7)),
+                            trailing: path.toLowerCase().endsWith('.pdf')
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit_note,
+                                            color: Colors.indigo),
+                                        tooltip: 'Edit pages',
+                                        onPressed: () =>
+                                            showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          useSafeArea: true,
+                                          builder: (_) => PdfPageManagerSheet(
+                                            pdfPath: path,
+                                            onSaved: () {},
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.open_in_new,
+                                            color:
+                                                Colors.indigo.withOpacity(0.7)),
+                                        onPressed: () async {
+                                          final result =
+                                              await OpenFile.open(path);
+                                          if (result.type !=
+                                              ResultType.done) {
+                                            Get.snackbar(
+                                              'Error',
+                                              'Could not open file',
+                                              backgroundColor: Colors.red
+                                                  .withOpacity(0.1),
+                                              colorText: Colors.red,
+                                              icon: const Icon(Icons.error,
+                                                  color: Colors.red),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  )
+                                : IconButton(
+                                    icon: Icon(Icons.open_in_new,
+                                        color:
+                                            Colors.indigo.withOpacity(0.7)),
+                                    onPressed: () async {
+                                      final result =
+                                          await OpenFile.open(path);
+                                      if (result.type != ResultType.done) {
+                                        Get.snackbar(
+                                          'Error',
+                                          'Could not open file',
+                                          backgroundColor:
+                                              Colors.red.withOpacity(0.1),
+                                          colorText: Colors.red,
+                                          icon: const Icon(Icons.error,
+                                              color: Colors.red),
+                                        );
+                                      }
+                                    },
+                                  ),
                             onTap: () async {
                               final result = await OpenFile.open(path);
                               if (result.type != ResultType.done) {
