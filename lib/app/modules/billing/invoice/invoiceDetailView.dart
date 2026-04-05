@@ -13,6 +13,7 @@ import '../../../data/models/expense_model.dart';
 import '../../../data/models/invoice_model.dart';
 import '../../../data/models/time_entry_model.dart';
 import '../../../services/pdf_invoice_service.dart';
+import '../../../services/storage_service.dart';
 import '../../../utils/font_styles.dart';
 
 class InvoiceDetailView extends StatefulWidget {
@@ -25,20 +26,37 @@ class InvoiceDetailView extends StatefulWidget {
 }
 
 class _InvoiceDetailViewState extends State<InvoiceDetailView> {
+  final StorageService _storage = StorageService.instance;
   late Box<TimeEntryModel> timeBox;
   late Box<ExpenseModel> expenseBox;
   late Box<CaseModel> caseBox;
+  bool _ready = false;
 
   @override
   void initState() {
     super.initState();
-    timeBox = Hive.box<TimeEntryModel>('time_entries');
-    expenseBox = Hive.box<ExpenseModel>('expenses');
-    caseBox = Hive.box<CaseModel>('cases');
+    _initBoxes();
+  }
+
+  Future<void> _initBoxes() async {
+    timeBox = await _storage.getBox<TimeEntryModel>('time_entries');
+    expenseBox = await _storage.getBox<ExpenseModel>('expenses');
+    caseBox = await _storage.getBox<CaseModel>('cases');
+    if (!mounted) return;
+    setState(() {
+      _ready = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_ready) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Invoice Details')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final invoice = widget.invoice;
     final caseTitle =
         caseBox.values.firstWhereOrNull((c) => c.id == invoice.caseId)?.title ??

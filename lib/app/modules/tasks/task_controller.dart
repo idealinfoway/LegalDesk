@@ -4,8 +4,10 @@ import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
 import '../../data/models/task_model.dart';
+import '../../services/storage_service.dart';
 
 class TaskController extends GetxController {
+  final StorageService _storage = StorageService.instance;
   var tasks = <TaskModel>[].obs;
   Box<TaskModel>? _taskBox;
   StreamSubscription<BoxEvent>? _taskBoxSubscription;
@@ -28,9 +30,7 @@ class TaskController extends GetxController {
   }
 
   Future<Box<TaskModel>> _ensureTaskBoxOpen() async {
-    final box = Hive.isBoxOpen('tasks')
-        ? Hive.box<TaskModel>('tasks')
-        : await Hive.openBox<TaskModel>('tasks');
+    final box = await _storage.getBox<TaskModel>('tasks');
 
     if (!identical(_taskBox, box)) {
       await _taskBoxSubscription?.cancel();
@@ -51,7 +51,7 @@ class TaskController extends GetxController {
       tasks.assignAll(allTasks);
     } on HiveError {
       // The box may have been closed during restore/sign-out; reopen and retry once.
-      final box = await Hive.openBox<TaskModel>('tasks');
+      final box = await _storage.getBox<TaskModel>('tasks');
       final allTasks = box.values.toList()
         ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
       tasks.assignAll(allTasks);

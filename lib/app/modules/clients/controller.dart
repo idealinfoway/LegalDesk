@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import '../../data/models/client_model.dart';
+import '../../services/storage_service.dart';
 
 class ClientsController extends GetxController {
-  final clientBox = Hive.box<ClientModel>('clients');
+  final StorageService _storage = StorageService.instance;
+  final RxList<ClientModel> _allClients = <ClientModel>[].obs;
+  Box<ClientModel>? _clientBox;
+  StreamSubscription<BoxEvent>? _clientBoxSubscription;
 
   // Observables
   final searchQuery = ''.obs;
@@ -22,12 +28,11 @@ class ClientsController extends GetxController {
 
   // Computed filtered clients
   RxList<ClientModel> get filteredClients {
-    final allClients = clientBox.values.toList().cast<ClientModel>();
-    return _filterAndSortClients(allClients).obs;
+    return _filterAndSortClients(_allClients).obs;
   }
 
   List<String> get cityOptions {
-    final cities = clientBox.values
+    final cities = _allClients
         .map((client) => client.city.trim())
         .where((city) => city.isNotEmpty)
         .toSet()
@@ -37,7 +42,7 @@ class ClientsController extends GetxController {
   }
 
   List<String> get stateOptions {
-    final states = clientBox.values
+    final states = _allClients
         .map((client) => client.state.trim())
         .where((state) => state.isNotEmpty)
         .toSet()
@@ -47,11 +52,11 @@ class ClientsController extends GetxController {
   }
 
   // Stats
-  int get totalClients => clientBox.length;
+  int get totalClients => _allClients.length;
   int get filteredCount => filteredClients.length;
 
   Map<String, int> get clientsByCity {
-    final allClients = clientBox.values.toList().cast<ClientModel>();
+    final allClients = _allClients;
     final cityCount = <String, int>{};
 
     for (final city in cityOptions) {
@@ -63,7 +68,7 @@ class ClientsController extends GetxController {
   }
 
   Map<String, int> get clientsByState {
-    final allClients = clientBox.values.toList().cast<ClientModel>();
+    final allClients = _allClients;
     final stateCount = <String, int>{};
 
     for (final state in stateOptions) {
@@ -77,13 +82,29 @@ class ClientsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadClients();
     searchController.addListener(() {
       searchQuery.value = searchController.text.toLowerCase();
     });
   }
 
+  Future<void> _loadClients() async {
+    final box = await _storage.getBox<ClientModel>('clients');
+
+    if (!identical(_clientBox, box)) {
+      await _clientBoxSubscription?.cancel();
+      _clientBox = box;
+      _clientBoxSubscription = box.watch().listen((_) {
+        _allClients.assignAll(box.values.cast<ClientModel>());
+      });
+    }
+
+    _allClients.assignAll(box.values.cast<ClientModel>());
+  }
+
   @override
   void onClose() {
+    _clientBoxSubscription?.cancel();
     searchController.dispose();
     super.onClose();
   }
@@ -171,21 +192,15 @@ class ClientsController extends GetxController {
   }
 
   List<ClientModel> getClientsByCity(String city) {
-    return clientBox.values
-        .where((c) => c.city == city)
-        .toList()
-        .cast<ClientModel>();
+    return _allClients.where((c) => c.city == city).toList();
   }
 
   List<ClientModel> getClientsByState(String state) {
-    return clientBox.values
-        .where((c) => c.state == state)
-        .toList()
-        .cast<ClientModel>();
+    return _allClients.where((c) => c.state == state).toList();
   }
 
   List<ClientModel> getRecentClients() {
-    final allClients = clientBox.values.toList().cast<ClientModel>();
+    final allClients = _allClients.toList();
     allClients.sort((a, b) => b.key.compareTo(a.key));
     return allClients.take(10).toList();
   }
@@ -196,7 +211,7 @@ class ClientsController extends GetxController {
     final suggestions = <String>{};
     final lowerQuery = query.toLowerCase();
 
-    for (final client in clientBox.values) {
+    for (final client in _allClients) {
       if (client.name.toLowerCase().contains(lowerQuery)) {
         suggestions.add(client.name);
       }

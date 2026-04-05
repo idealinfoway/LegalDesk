@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:collection/collection.dart';
 import '../../../utils/font_styles.dart';
+import '../../../services/storage_service.dart';
 
 import '../../../data/models/invoice_model.dart';
 import '../../../data/models/case_model.dart';
@@ -11,6 +12,10 @@ import 'invoiceDetailView.dart';
 
 class InvoiceListView extends StatelessWidget {
   const InvoiceListView({super.key});
+
+  Future<void> _ensureCoreBoxesOpen() async {
+    await StorageService.instance.ensureCoreBoxesOpen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +25,14 @@ class InvoiceListView extends StatelessWidget {
       appBar: AppBar(
         title: Text("📄 Invoices", style: FontStyles.poppins(fontWeight: FontWeight.w600)),
       ),
-      body: ValueListenableBuilder(
+      body: FutureBuilder<void>(
+        future: _ensureCoreBoxesOpen(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return ValueListenableBuilder(
         valueListenable: Hive.box<InvoiceModel>('invoices').listenable(),
         builder: (context, Box<InvoiceModel> box, _) {
           final caseBox = Hive.box<CaseModel>('cases');
@@ -73,6 +85,8 @@ class InvoiceListView extends StatelessWidget {
               );
             },
           );
+        },
+      );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(

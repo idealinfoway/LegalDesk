@@ -7,6 +7,7 @@ import '../data/models/case_model.dart';
 import '../data/models/expense_model.dart';
 import '../data/models/invoice_model.dart';
 import '../data/models/time_entry_model.dart';
+import 'storage_service.dart';
 
 class PdfInvoiceService {
   static Future<Uint8List> generate(InvoiceModel invoice) async {
@@ -15,9 +16,10 @@ class PdfInvoiceService {
 
     final pdf = pw.Document();
 
-    final caseBox = Hive.box<CaseModel>('cases');
-    final timeBox = Hive.box<TimeEntryModel>('time_entries');
-    final expenseBox = Hive.box<ExpenseModel>('expenses');
+    final storage = StorageService.instance;
+    final caseBox = await storage.getBox<CaseModel>('cases');
+    final timeBox = await storage.getBox<TimeEntryModel>('time_entries');
+    final expenseBox = await storage.getBox<ExpenseModel>('expenses');
 
     final caseModel = caseBox.values.firstWhere((c) => c.id == invoice.caseId);
     final timeEntries = invoice.timeEntryIds

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/case_model.dart';
 import '../../../data/models/expense_model.dart';
+import '../../../services/storage_service.dart';
 class AddExpenseView extends StatefulWidget {
   const AddExpenseView({super.key});
 
@@ -12,6 +12,7 @@ class AddExpenseView extends StatefulWidget {
 }
 
 class _AddExpenseViewState extends State<AddExpenseView> {
+  final StorageService _storage = StorageService.instance;
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
@@ -19,7 +20,21 @@ class _AddExpenseViewState extends State<AddExpenseView> {
   String? _selectedCaseId;
   DateTime _selectedDate = DateTime.now();
 
-  final caseList = Hive.box<CaseModel>('cases').values.toList();
+  List<CaseModel> caseList = <CaseModel>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCases();
+  }
+
+  Future<void> _loadCases() async {
+    final caseBox = await _storage.getBox<CaseModel>('cases');
+    if (!mounted) return;
+    setState(() {
+      caseList = caseBox.values.toList();
+    });
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -42,7 +57,8 @@ class _AddExpenseViewState extends State<AddExpenseView> {
       date: _selectedDate,
     );
 
-    await Hive.box<ExpenseModel>('expenses').add(expense);
+    final expenseBox = await _storage.getBox<ExpenseModel>('expenses');
+    await expenseBox.add(expense);
 
     Get.back();
     Get.snackbar("Success", "Expense saved successfully");

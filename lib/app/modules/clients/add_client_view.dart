@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/client_model.dart';
 import '../../services/contact_import_service.dart';
+import '../../services/storage_service.dart';
 
 class AddClientView extends StatefulWidget {
   final ClientModel? existingClient;
@@ -16,6 +16,7 @@ class AddClientView extends StatefulWidget {
 }
 
 class _AddClientViewState extends State<AddClientView> {
+  final StorageService _storage = StorageService.instance;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _contactController = TextEditingController();
@@ -84,7 +85,7 @@ class _AddClientViewState extends State<AddClientView> {
         city: _cityController.text.trim(),
         state: _stateController.text.trim(),
       );
-      final box = Hive.box<ClientModel>('clients');
+      final box = await _storage.getBox<ClientModel>('clients');
       await box.add(newClient);
       
       Get.snackbar('Success', 'Client added successfully');

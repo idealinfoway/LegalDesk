@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import '../../data/models/task_model.dart';
 import '../../data/models/case_model.dart';
 import '../../services/notification_service.dart';
+import '../../services/storage_service.dart';
 import 'task_controller.dart';
 
 class AddTaskView extends StatefulWidget {
@@ -14,6 +14,7 @@ class AddTaskView extends StatefulWidget {
 }
 
 class _AddTaskViewState extends State<AddTaskView> {
+  final StorageService _storage = StorageService.instance;
   final controller = Get.find<TaskController>();
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
@@ -31,9 +32,7 @@ class _AddTaskViewState extends State<AddTaskView> {
   }
 
   Future<void> _loadCases() async {
-    final box = Hive.isBoxOpen('cases')
-        ? Hive.box<CaseModel>('cases')
-        : await Hive.openBox<CaseModel>('cases');
+    final box = await _storage.getBox<CaseModel>('cases');
 
     if (!mounted) return;
     setState(() {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:legalsteward/app/data/models/case_model.dart';
 import 'package:legalsteward/app/data/models/hearing_model.dart';
+import 'package:legalsteward/app/services/storage_service.dart';
 import 'package:uuid/uuid.dart';
 
 class AddHearingView extends StatefulWidget {
@@ -15,6 +15,7 @@ class AddHearingView extends StatefulWidget {
 }
 
 class _AddHearingViewState extends State<AddHearingView> {
+  final StorageService _storage = StorageService.instance;
   final _summaryController = TextEditingController();
   final _orderController = TextEditingController();
   final _nextNotesController = TextEditingController();
@@ -108,7 +109,8 @@ class _AddHearingViewState extends State<AddHearingView> {
       createdAt: DateTime.now(),
     );
 
-    await Hive.box<hearingModel>('hearings').add(hearing);
+    final hearingsBox = await _storage.getBox<hearingModel>('hearings');
+    await hearingsBox.add(hearing);
 
     // Snapshot update only when valid next date
     if (nextHearingDate != null) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:legalsteward/app/services/storage_service.dart';
 
 import '../../../data/models/case_model.dart';
 import '../../../data/models/hearing_model.dart';
@@ -11,6 +12,10 @@ class HearingHistoryView extends StatelessWidget {
   final CaseModel caseData;
 
   const HearingHistoryView({super.key, required this.caseData});
+
+  Future<Box<hearingModel>> _getHistoryBox() async {
+    return StorageService.instance.getBox<hearingModel>('hearings');
+  }
 
   void _addHearing() {
     Get.to(() => AddHearingView(caseData: caseData))!.then((result) {
@@ -23,7 +28,6 @@ class HearingHistoryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final historyBox = Hive.box<hearingModel>('hearings');
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -58,7 +62,16 @@ class HearingHistoryView extends StatelessWidget {
           ),
         ],
       ),
-      body: ValueListenableBuilder(
+      body: FutureBuilder<Box<hearingModel>>(
+        future: _getHistoryBox(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final historyBox = snapshot.data!;
+
+          return ValueListenableBuilder(
         valueListenable: historyBox.listenable(),
         builder: (context, Box<hearingModel> box, _) {
           final hearings =
@@ -273,6 +286,8 @@ class HearingHistoryView extends StatelessWidget {
               );
             },
           );
+        },
+      );
         },
       ),
     );

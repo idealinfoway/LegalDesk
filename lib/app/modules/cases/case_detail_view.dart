@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:legalsteward/app/modules/cases/History/add_hearing.dart';
 import 'package:legalsteward/app/modules/cases/add_cases_view.dart';
+import 'package:legalsteward/app/services/storage_service.dart';
 import 'package:legalsteward/app/utils/font_styles.dart';
 import 'package:open_file/open_file.dart';
 
@@ -13,6 +14,7 @@ import 'History/hearing_view.dart';
 
 class CaseDetailView extends StatelessWidget {
   final CaseModel caseData;
+  static final StorageService _storage = StorageService.instance;
 
 
 
@@ -37,7 +39,7 @@ class CaseDetailView extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      final box = Hive.box<hearingModel>('hearings');
+      final box = await _storage.getBox<hearingModel>('hearings');
       final toDelete = box.values.where((h) => h.caseId == caseData.id).toList();
       for (final h in toDelete) {
         await h.delete();

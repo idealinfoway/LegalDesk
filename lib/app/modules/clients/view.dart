@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:legalsteward/app/modules/clients/controller.dart';
+import 'package:legalsteward/app/services/storage_service.dart';
 
 import '../../constants/ad_constant.dart';
 import '../../data/models/client_model.dart';
@@ -12,6 +13,10 @@ import 'client_detail_view.dart';
 
 class ClientsView extends StatelessWidget {
   const ClientsView({super.key});
+
+  Future<void> _ensureCoreBoxesOpen() async {
+    await StorageService.instance.ensureCoreBoxesOpen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +78,14 @@ class ClientsView extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
+      body: FutureBuilder<void>(
+        future: _ensureCoreBoxesOpen(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return Column(
         children: [
           // Search Bar
           //adhere
@@ -173,6 +185,8 @@ class ClientsView extends StatelessWidget {
             ),
           ),
         ],
+      );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Get.toNamed("/add-client"),

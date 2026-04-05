@@ -4,13 +4,13 @@ import 'package:cunning_document_scanner/cunning_document_scanner.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/case_model.dart';
 import '../../data/models/client_model.dart';
+import '../../services/storage_service.dart';
 import '../../widgets/pdf_page_manager_sheet.dart';
 import '../clients/add_client_view.dart';
 
@@ -36,6 +36,7 @@ class AddCaseView extends StatefulWidget {
 }
 
 class _AddCaseViewState extends State<AddCaseView> {
+  final StorageService _storage = StorageService.instance;
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _courtController = TextEditingController();
@@ -64,7 +65,7 @@ class _AddCaseViewState extends State<AddCaseView> {
   @override
   void initState() {
     super.initState();
-    _clients = Hive.box<ClientModel>('clients').values.toList();
+    _initializeForm();
 
     if (widget.existingCase != null) {
       final c = widget.existingCase!;
@@ -86,13 +87,21 @@ class _AddCaseViewState extends State<AddCaseView> {
       _vakalatDate = c.vakalatDate;
       _registrationNoController.text = c.registrationNo ?? '';
       _hearingDates = c.hearingDates;
+    }
+  }
 
-      if (c.clientId != null) {
+  Future<void> _initializeForm() async {
+    final clientsBox = await _storage.getBox<ClientModel>('clients');
+    if (!mounted) return;
+    setState(() {
+      _clients = clientsBox.values.toList();
+
+      if (widget.existingCase?.clientId != null) {
         _selectedClient = _clients.firstWhereOrNull(
-          (cl) => cl.id == c.clientId,
+          (cl) => cl.id == widget.existingCase!.clientId,
         );
       }
-    }
+    });
   }
 
   void _saveCase() async {
@@ -162,7 +171,8 @@ class _AddCaseViewState extends State<AddCaseView> {
           hearingDates: _hearingDates,
         );
 
-        await Hive.box<CaseModel>('cases').add(newCase);
+        final casesBox = await _storage.getBox<CaseModel>('cases');
+        await casesBox.add(newCase);
         // Schedule hearing reminder for new case if hearing date set
         if (_hearingDate != null) {
           // await NotificationService.scheduleCaseHearingReminder(newCase);
@@ -228,9 +238,7 @@ class _AddCaseViewState extends State<AddCaseView> {
 
   void _addNewClient() async {
     await Get.to(() => AddClientView());
-    setState(() {
-      _clients = Hive.box<ClientModel>('clients').values.toList();
-    });
+    await _initializeForm();
   }
 
   Future<void> _pickFiles() async {

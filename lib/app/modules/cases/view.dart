@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:legalsteward/app/modules/ads/native_ads.dart';
 import 'package:legalsteward/app/modules/cases/controller.dart';
+import 'package:legalsteward/app/services/storage_service.dart';
 
 import '../../data/models/case_model.dart';
 import '../../utils/font_styles.dart';
@@ -10,6 +11,10 @@ import 'case_detail_view.dart';
 
 class CasesView extends StatelessWidget {
   const CasesView({super.key});
+
+  Future<void> _ensureCoreBoxesOpen() async {
+    await StorageService.instance.ensureCoreBoxesOpen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +79,14 @@ class CasesView extends StatelessWidget {
           ),
         ],
       ),
-      body: Column(
-        
+      body: FutureBuilder<void>(
+        future: _ensureCoreBoxesOpen(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return Column(
         children: [
           // Search Bar
           Container(
@@ -145,6 +156,7 @@ class CasesView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Obx(
               () => ListView.builder(
+
                 scrollDirection: Axis.horizontal,
                 itemCount: controller.statusOptions.length,
                 itemBuilder: (context, index) {
@@ -161,12 +173,13 @@ class CasesView extends StatelessWidget {
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
-                        label: Text('$status ($count)'),
+                        
+                        label: Text('$status ($count)', style: FontStyles.poppins(fontWeight: FontWeight.w900, color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface)),
                         selected: isSelected,
                         onSelected: (_) =>
                             controller.updateStatusFilter(status),
-                        selectedColor: colorScheme.primary.withOpacity(0.2),
-                        checkmarkColor: colorScheme.primary,
+                        selectedColor: colorScheme.primary.withOpacity(1),
+                        checkmarkColor: colorScheme.onPrimary,
                       ),
                     );
                   });
@@ -238,6 +251,8 @@ class CasesView extends StatelessWidget {
           ),
           SizedBox(height: 10),
         ],
+      );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Get.toNamed('/add-case'),

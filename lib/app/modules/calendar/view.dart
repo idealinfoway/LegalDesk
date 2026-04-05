@@ -6,6 +6,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../constants/ad_constant.dart';
 import '../../data/models/case_model.dart';
 import '../../data/models/task_model.dart';
+import '../../services/storage_service.dart';
 import '../ads/banner_ad_implement.dart';
 
 class CalendarView extends StatefulWidget {
@@ -16,6 +17,7 @@ class CalendarView extends StatefulWidget {
 }
 
 class _CalendarViewState extends State<CalendarView> {
+  final StorageService _storage = StorageService.instance;
   Box<CaseModel>? caseBox;
   Box<TaskModel>? taskBox;
   DateTime _focusedDay = DateTime.now();
@@ -34,13 +36,9 @@ class _CalendarViewState extends State<CalendarView> {
   }
 
   Future<void> _initializeBoxesAndEvents() async {
-    caseBox = Hive.isBoxOpen('cases')
-        ? Hive.box<CaseModel>('cases')
-        : await Hive.openBox<CaseModel>('cases');
+    caseBox = await _storage.getBox<CaseModel>('cases');
 
-    taskBox = Hive.isBoxOpen('tasks')
-        ? Hive.box<TaskModel>('tasks')
-        : await Hive.openBox<TaskModel>('tasks');
+    taskBox = await _storage.getBox<TaskModel>('tasks');
 
     if (!mounted) return;
     _loadEvents();

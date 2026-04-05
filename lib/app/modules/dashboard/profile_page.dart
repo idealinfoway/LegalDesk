@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:legalsteward/app/data/models/user_model.dart';
 import 'package:legalsteward/app/modules/login/controller.dart';
+import 'package:legalsteward/app/services/storage_service.dart';
 import 'package:legalsteward/app/utils/tools.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -14,7 +15,9 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
-  late Box userBox;
+  final StorageService _storage = StorageService.instance;
+  Box<UserModel>? _userBox;
+  bool _isUserBoxReady = false;
   UserModel? user;
   bool isEditing = false;
   final _formKey = GlobalKey<FormState>();
@@ -29,12 +32,7 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    // userBox = Hive.box('user');
-    userBox = Hive.box<UserModel>('user');
-    if (userBox.isNotEmpty) {
-      user = userBox.getAt(0);
-      _setControllersFromUser();
-    }
+    _initUserBox();
 
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -45,6 +43,20 @@ class _ProfilePageState extends State<ProfilePage>
       curve: Curves.easeInOut,
     );
     _animationController.forward();
+  }
+
+  Future<void> _initUserBox() async {
+    final box = await _storage.getBox<UserModel>('user');
+    if (!mounted) return;
+
+    setState(() {
+      _userBox = box;
+      _isUserBoxReady = true;
+      if (box.isNotEmpty) {
+        user = box.getAt(0);
+        _setControllersFromUser();
+      }
+    });
   }
 
   @override
@@ -70,6 +82,8 @@ class _ProfilePageState extends State<ProfilePage>
 
   void _saveProfile() async {
     if (_formKey.currentState!.validate()) {
+      if (_userBox == null) return;
+
       final newUser = UserModel(
         id: user?.id ?? '',
         createdAt: user?.createdAt ?? DateTime.now(),
@@ -80,10 +94,10 @@ class _ProfilePageState extends State<ProfilePage>
         state: _stateController.text.trim(),
       );
 
-      if (userBox.isEmpty) {
-        await userBox.add(newUser);
+      if (_userBox!.isEmpty) {
+        await _userBox!.add(newUser);
       } else {
-        await userBox.putAt(0, newUser);
+        await _userBox!.putAt(0, newUser);
       }
 
       setState(() {
@@ -93,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage>
 
       Get.snackbar(
         'Success',
-        'Profile ${userBox.length == 1 ? 'saved' : 'updated'} successfully!',
+        'Profile ${_userBox!.length == 1 ? 'saved' : 'updated'} successfully!',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade100,
         colorText: Colors.green.shade900,
@@ -106,6 +120,13 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    if (!_isUserBoxReady) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Profile')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final isUserPresent = user != null;
 
     return Scaffold(
@@ -748,7 +769,7 @@ class _ProfilePageState extends State<ProfilePage>
         }
 
         // Step 3: Sign out
-        await loginController.signOut();
+        await loginController.signOut(clearCoreData: false);
 
         if (Navigator.of(context, rootNavigator: true).canPop()) {
           Navigator.of(context, rootNavigator: true).pop();

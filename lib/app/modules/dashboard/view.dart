@@ -1,16 +1,14 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:legalsteward/app/modules/about/view.dart';
 import 'package:legalsteward/app/modules/ads/banner_ad_implement.dart';
 import 'package:legalsteward/app/modules/dashboard/controller.dart';
 import 'package:legalsteward/app/modules/login/controller.dart';
+import 'package:legalsteward/app/services/storage_service.dart';
 import 'package:legalsteward/app/utils/tools.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -24,6 +22,10 @@ import 'profile_page.dart';
 
 class DashboardView extends GetView<DashBoardController> {
   const DashboardView({super.key});
+
+  Future<void> _ensureCoreBoxesOpen() async {
+    await StorageService.instance.ensureCoreBoxesOpen();
+  }
 
   Future<void> _handleBackup(BuildContext context) async {
     final loginController = Get.find<LoginController>();
@@ -71,15 +73,6 @@ class DashboardView extends GetView<DashBoardController> {
     if (Get.isDialogOpen ?? false) {
       Get.back();
     }
-  }
-
-  void _showError(
-    BuildContext context,
-    String message,
-    DateTime startTime,
-  ) async {
-    await _closeDialogAfterMinimumDuration(startTime);
-    _showSnackbar(message, isError: true);
   }
 
   Future<void> _closeDialogAfterMinimumDuration(DateTime startTime) async {
@@ -143,7 +136,6 @@ class DashboardView extends GetView<DashBoardController> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final size = MediaQuery.of(context).size;
 
     final taskController = Get.find<TaskController>();
 
@@ -218,13 +210,20 @@ class DashboardView extends GetView<DashBoardController> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
+      body: FutureBuilder<void>(
+        future: _ensureCoreBoxesOpen(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return SafeArea(
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ListView(
+                    children: [
                   Row(
                     spacing: 16,
                     children: <Widget>[
@@ -417,20 +416,20 @@ class DashboardView extends GetView<DashBoardController> {
                   ),
 
                   const SizedBox(height: 42),
-                ],
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 16,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Obx(() {
-                  final connected = controller.isConnected.value;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 16,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                    child: Obx(() {
+                      final connected = controller.isConnected.value;
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                       // Debug indicator (you can remove this later)
                       if (!connected)
                         Container(
@@ -475,13 +474,15 @@ class DashboardView extends GetView<DashBoardController> {
                       //         }
                       //       : null,
                       // ),
-                    ],
-                  );
-                }),
-              ),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

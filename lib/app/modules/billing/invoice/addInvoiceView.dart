@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/invoice_model.dart';
 import '../../../data/models/time_entry_model.dart';
+import '../../../services/storage_service.dart';
 import '../../../data/models/expense_model.dart';
 import '../../../data/models/case_model.dart';
 
@@ -18,12 +18,40 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
   String? _selectedCaseId;
   List<String> _selectedTimeEntryIds = [];
   List<String> _selectedExpenseIds = [];
+  final StorageService _storage = StorageService.instance;
+  bool _ready = false;
+  List<CaseModel> _cases = <CaseModel>[];
+  List<TimeEntryModel> _timeEntries = <TimeEntryModel>[];
+  List<ExpenseModel> _expenses = <ExpenseModel>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _initBoxes();
+  }
+
+  Future<void> _initBoxes() async {
+    final caseBox = await _storage.getBox<CaseModel>('cases');
+    final timeBox = await _storage.getBox<TimeEntryModel>('time_entries');
+    final expenseBox = await _storage.getBox<ExpenseModel>('expenses');
+
+    if (!mounted) return;
+    setState(() {
+      _cases = caseBox.values.toList();
+      _timeEntries = timeBox.values.toList();
+      _expenses = expenseBox.values.toList();
+      _ready = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final caseBox = Hive.box<CaseModel>('cases');
-    final timeBox = Hive.box<TimeEntryModel>('time_entries');
-    final expenseBox = Hive.box<ExpenseModel>('expenses');
+    if (!_ready) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Generate Invoice")),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text("Generate Invoice")),
@@ -36,7 +64,7 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
               DropdownButtonFormField<String>(
                 value: _selectedCaseId,
                 decoration: const InputDecoration(labelText: "Select Case"),
-                items: caseBox.values.map((c) {
+                items: _cases.map((c) {
                   return DropdownMenuItem(value: c.id, child: Text(c.title));
                 }).toList(),
                 onChanged: (val) => setState(() => _selectedCaseId = val),
@@ -45,7 +73,7 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
         
               if (_selectedCaseId != null) ...[
                 const Text("Time Entries", style: TextStyle(fontWeight: FontWeight.bold)),
-                ...timeBox.values
+                ..._timeEntries
                     .where((t) => t.caseId == _selectedCaseId)
                     .map((t) => CheckboxListTile(
                           title: Text("${t.description} - ₹${t.total}"),
@@ -62,7 +90,7 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
                         )),
                 const SizedBox(height: 12),
                 const Text("Expenses", style: TextStyle(fontWeight: FontWeight.bold)),
-                ...expenseBox.values
+                ..._expenses
                     .where((e) => e.caseId == _selectedCaseId)
                     .map((e) => CheckboxListTile(
                           title: Text("${e.title} - ₹${e.amount}"),
@@ -92,8 +120,8 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
   }
 
   void _generateInvoice() async {
-    final timeBox = Hive.box<TimeEntryModel>('time_entries');
-    final expenseBox = Hive.box<ExpenseModel>('expenses');
+    final timeBox = await _storage.getBox<TimeEntryModel>('time_entries');
+    final expenseBox = await _storage.getBox<ExpenseModel>('expenses');
 
     final selectedTimeEntries = _selectedTimeEntryIds.map((id) =>
         timeBox.get(int.parse(id))!).toList();
@@ -113,7 +141,7 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
       totalAmount: totalAmount,
     );
 
-    final invoiceBox = await Hive.openBox<InvoiceModel>('invoices');
+    final invoiceBox = await _storage.getBox<InvoiceModel>('invoices');
     await invoiceBox.add(invoice);
 
     Get.back();

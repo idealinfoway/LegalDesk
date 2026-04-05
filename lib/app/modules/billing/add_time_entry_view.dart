@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:legalsteward/app/data/models/time_entry_model.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/case_model.dart';
+import '../../services/storage_service.dart';
 
 
 class AddTimeEntryView extends StatefulWidget {
@@ -15,6 +15,7 @@ class AddTimeEntryView extends StatefulWidget {
 }
 
 class _AddTimeEntryViewState extends State<AddTimeEntryView> {
+  final StorageService _storage = StorageService.instance;
   final _formKey = GlobalKey<FormState>();
   final _descController = TextEditingController();
   final _hoursController = TextEditingController();
@@ -23,7 +24,21 @@ class _AddTimeEntryViewState extends State<AddTimeEntryView> {
   String? _selectedCaseId;
   DateTime _selectedDate = DateTime.now();
 
-  final caseList = Hive.box<CaseModel>('cases').values.toList();
+  List<CaseModel> caseList = <CaseModel>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCases();
+  }
+
+  Future<void> _loadCases() async {
+    final caseBox = await _storage.getBox<CaseModel>('cases');
+    if (!mounted) return;
+    setState(() {
+      caseList = caseBox.values.toList();
+    });
+  }
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -47,7 +62,8 @@ class _AddTimeEntryViewState extends State<AddTimeEntryView> {
       rate: double.parse(_rateController.text),
     );
 
-    await Hive.box<TimeEntryModel>('time_entries').add(timeEntry);
+    final timeEntryBox = await _storage.getBox<TimeEntryModel>('time_entries');
+    await timeEntryBox.add(timeEntry);
 
     Get.back();
     Get.snackbar("Success", "Time entry saved");
@@ -55,9 +71,6 @@ class _AddTimeEntryViewState extends State<AddTimeEntryView> {
 
   @override
   Widget build(BuildContext context) {
-    // final theme = Theme.of(context);
-    final caseBox = Hive.box<CaseModel>('cases');
-
     return Scaffold(
       appBar: AppBar(title: const Text("Add Time Entry")),
       body: Padding(
@@ -69,7 +82,7 @@ class _AddTimeEntryViewState extends State<AddTimeEntryView> {
               DropdownButtonFormField<String>(
                 value: _selectedCaseId,
                 decoration: const InputDecoration(labelText: "Select Case"),
-                items: caseBox.values.map((c) {
+                items: caseList.map((c) {
                   return DropdownMenuItem(
                     value: c.id,
                     child: Text(c.title),

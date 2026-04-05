@@ -19,9 +19,11 @@ import '../../data/models/invoice_model.dart';
 import '../../data/models/task_model.dart';
 import '../../data/models/time_entry_model.dart';
 import '../../data/models/user_model.dart';
+import '../../services/storage_service.dart';
 
 class LoginController extends GetxController {
   final _backupLock = Lock();
+  final StorageService _storage = StorageService.instance;
 
   final GoogleSignIn googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile', 'https://www.googleapis.com/auth/drive.file'],
@@ -151,31 +153,13 @@ class LoginController extends GetxController {
     }
   }
 
-  // Add this helper method to your LoginController or create a separate HiveHelper class
-
-  Future<Box<T>> _getSafeBox<T>(String boxName) async {
-    try {
-      if (Hive.isBoxOpen(boxName)) {
-        return Hive.box<T>(boxName);
-      } else {
-        return await Hive.openBox<T>(boxName);
-      }
-    } catch (e) {
-      // If there's a type mismatch, close and reopen
-      if (Hive.isBoxOpen(boxName)) {
-        await Hive.box(boxName).close();
-      }
-      return await Hive.openBox<T>(boxName);
-    }
-  }
-
   // Update your _saveUserToHive method
   Future<void> _saveUserToHive(
     User firebaseUser,
     GoogleSignInAccount googleUser,
   ) async {
     try {
-      final userBox = await _getSafeBox<UserModel>('user');
+      final userBox = await _storage.getBox<UserModel>('user');
 
       final userModel = UserModel(
         id: firebaseUser.uid,
@@ -193,27 +177,14 @@ class LoginController extends GetxController {
   }
 
   // Update your signOut method
-  Future<void> signOut() async {
+  Future<void> signOut({bool clearCoreData = true}) async {
     try {
       await _auth.signOut();
       await googleSignIn.signOut();
 
-      // Clear ALL Hive boxes related to user data using safe box access
-      final userBox = await _getSafeBox<UserModel>('user');
-      final caseBox = await _getSafeBox<CaseModel>('cases');
-      final expenseBox = await _getSafeBox<ExpenseModel>('expenses');
-      final timeEntryBox = await _getSafeBox<TimeEntryModel>('time_entries');
-      final clientBox = await _getSafeBox<ClientModel>('clients');
-      final taskBox = await _getSafeBox<TaskModel>('tasks');
-      final invoiceBox = await _getSafeBox<InvoiceModel>('invoices');
-
-      await userBox.clear();
-      await caseBox.clear();
-      await expenseBox.clear();
-      await timeEntryBox.clear();
-      await clientBox.clear();
-      await taskBox.clear();
-      await invoiceBox.clear();
+      if (clearCoreData) {
+        await _storage.clearCoreBoxes();
+      }
 
       final appDir = await getApplicationDocumentsDirectory();
       final files = appDir.listSync();
@@ -252,20 +223,7 @@ class LoginController extends GetxController {
   Future<void> backupToDrive(GoogleAuthClient client) async {
     await _backupLock.synchronized(() async {
       try {
-        // Flush all boxes
-        if (Hive.isBoxOpen('user')) await Hive.box<UserModel>('user').flush();
-        if (Hive.isBoxOpen('cases')) await Hive.box<CaseModel>('cases').flush();
-        if (Hive.isBoxOpen('clients'))
-          await Hive.box<ClientModel>('clients').flush();
-        if (Hive.isBoxOpen('tasks')) await Hive.box<TaskModel>('tasks').flush();
-        if (Hive.isBoxOpen('time_entries'))
-          await Hive.box<TimeEntryModel>('time_entries').flush();
-        if (Hive.isBoxOpen('expenses'))
-          await Hive.box<ExpenseModel>('expenses').flush();
-        if (Hive.isBoxOpen('invoices'))
-          await Hive.box<InvoiceModel>('invoices').flush();
-        if (Hive.isBoxOpen('hearings'))
-          await Hive.box<hearingModel>('hearings').flush();
+        await _storage.flushCoreBoxes();
 
         await Future.delayed(const Duration(milliseconds: 500));
 
@@ -385,19 +343,7 @@ class LoginController extends GetxController {
   Future<void> restoreFromDrive(GoogleAuthClient client) async {
     try {
       // 1. Close all boxes before restoring
-      if (Hive.isBoxOpen('user')) await Hive.box<UserModel>('user').close();
-      if (Hive.isBoxOpen('cases')) await Hive.box<CaseModel>('cases').close();
-      if (Hive.isBoxOpen('clients'))
-        await Hive.box<ClientModel>('clients').close();
-      if (Hive.isBoxOpen('tasks')) await Hive.box<TaskModel>('tasks').close();
-      if (Hive.isBoxOpen('time_entries'))
-        await Hive.box<TimeEntryModel>('time_entries').close();
-      if (Hive.isBoxOpen('expenses'))
-        await Hive.box<ExpenseModel>('expenses').close();
-      if (Hive.isBoxOpen('invoices'))
-        await Hive.box<InvoiceModel>('invoices').close();
-      if (Hive.isBoxOpen('hearings'))
-        await Hive.box<hearingModel>('hearings').close();
+      await _storage.closeCoreBoxesSafely();
 
       final hiveDir = await getApplicationDocumentsDirectory();
       final hivePath = hiveDir.path;
@@ -435,14 +381,7 @@ class LoginController extends GetxController {
       print('Hive data restored from Drive!');
 
       // 4. Re-open all boxes with the correct type
-      await Hive.openBox<UserModel>('user');
-      await Hive.openBox<CaseModel>('cases');
-      await Hive.openBox<ClientModel>('clients');
-      await Hive.openBox<TaskModel>('tasks');
-      await Hive.openBox<TimeEntryModel>('time_entries');
-      await Hive.openBox<ExpenseModel>('expenses');
-      await Hive.openBox<InvoiceModel>('invoices');
-      await Hive.openBox<hearingModel>('hearings');
+      await _storage.ensureCoreBoxesOpen();
     } catch (e) {
       print('Error restoring from Drive: $e');
       rethrow;
@@ -468,18 +407,7 @@ class LoginController extends GetxController {
   }
 
   Future<void> ensureAllBoxesOpen() async {
-    if (!Hive.isBoxOpen('user')) await Hive.openBox<UserModel>('user');
-    if (!Hive.isBoxOpen('cases')) await Hive.openBox<CaseModel>('cases');
-    if (!Hive.isBoxOpen('clients')) await Hive.openBox<ClientModel>('clients');
-    if (!Hive.isBoxOpen('tasks')) await Hive.openBox<TaskModel>('tasks');
-    if (!Hive.isBoxOpen('time_entries'))
-      await Hive.openBox<TimeEntryModel>('time_entries');
-    if (!Hive.isBoxOpen('expenses'))
-      await Hive.openBox<ExpenseModel>('expenses');
-    if (!Hive.isBoxOpen('invoices'))
-      await Hive.openBox<InvoiceModel>('invoices');
-    if (!Hive.isBoxOpen('hearings'))
-      await Hive.openBox<hearingModel>('hearings');
+    await _storage.ensureCoreBoxesOpen();
   }
 }
 

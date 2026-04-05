@@ -3,12 +3,17 @@ import 'package:get/get.dart';
 import 'package:collection/collection.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../utils/font_styles.dart';
+import '../../../services/storage_service.dart';
 
 import '../../../data/models/expense_model.dart';
 import '../../../data/models/case_model.dart';
 
 class ExpenseListView extends StatelessWidget {
   const ExpenseListView({super.key});
+
+  Future<void> _ensureCoreBoxesOpen() async {
+    await StorageService.instance.ensureCoreBoxesOpen();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +23,14 @@ class ExpenseListView extends StatelessWidget {
       appBar: AppBar(
         title: Text("Expenses", style: FontStyles.poppins(fontWeight: FontWeight.w600)),
       ),
-      body: ValueListenableBuilder(
+      body: FutureBuilder<void>(
+        future: _ensureCoreBoxesOpen(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return ValueListenableBuilder(
         valueListenable: Hive.box<ExpenseModel>('expenses').listenable(),
         builder: (context, Box<ExpenseModel> expenseBox, _) {
           final caseBox = Hive.box<CaseModel>('cases');
@@ -120,6 +132,8 @@ class ExpenseListView extends StatelessWidget {
               );
             },
           );
+        },
+      );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(

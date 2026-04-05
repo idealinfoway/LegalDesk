@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
 import '../../data/models/case_model.dart';
+import '../../services/storage_service.dart';
 
 // Extension for null-safe DateTime comparison
 extension DateTimeComparison on DateTime? {
@@ -15,7 +18,10 @@ extension DateTimeComparison on DateTime? {
 }
 
 class CasesController extends GetxController {
-  final caseBox = Hive.box<CaseModel>('cases');
+  final StorageService _storage = StorageService.instance;
+  final RxList<CaseModel> _allCases = <CaseModel>[].obs;
+  Box<CaseModel>? _caseBox;
+  StreamSubscription<BoxEvent>? _caseBoxSubscription;
   
   // Search and filter observables
   final searchQuery = ''.obs;
@@ -34,16 +40,15 @@ class CasesController extends GetxController {
   
   // Computed filtered cases
   List<CaseModel> get filteredCases {
-    final allCases = caseBox.values.toList().cast<CaseModel>();
-    return _filterAndSortCases(allCases);
+    return _filterAndSortCases(_allCases);
   }
   
   // Stats
-  int get totalCases => caseBox.length;
+  int get totalCases => _allCases.length;
   int get filteredCount => filteredCases.length;
   
   Map<String, int> get casesByStatus {
-    final allCases = caseBox.values.toList().cast<CaseModel>();
+    final allCases = _allCases;
     final statusCount = <String, int>{};
     
     for (final status in statusOptions) {
@@ -57,6 +62,7 @@ class CasesController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadCases();
     
     // Listen to search text changes
     searchController.addListener(() {
@@ -64,8 +70,23 @@ class CasesController extends GetxController {
     });
   }
 
+  Future<void> _loadCases() async {
+    final box = await _storage.getBox<CaseModel>('cases');
+
+    if (!identical(_caseBox, box)) {
+      await _caseBoxSubscription?.cancel();
+      _caseBox = box;
+      _caseBoxSubscription = box.watch().listen((_) {
+        _allCases.assignAll(box.values.cast<CaseModel>());
+      });
+    }
+
+    _allCases.assignAll(box.values.cast<CaseModel>());
+  }
+
   @override
   void onClose() {
+    _caseBoxSubscription?.cancel();
     searchController.dispose();
     super.onClose();
   }
@@ -78,7 +99,7 @@ class CasesController extends GetxController {
           c.title.toLowerCase().contains(searchQuery.value) ||
           c.clientName.toLowerCase().contains(searchQuery.value) ||
           c.court.toLowerCase().contains(searchQuery.value) ||
-          (c.caseNo.toLowerCase().contains(searchQuery.value) ?? false);
+          c.caseNo.toLowerCase().contains(searchQuery.value);
 
       // Status filter
       bool matchesStatus = selectedStatus.value == 'All' || 
@@ -180,23 +201,21 @@ class CasesController extends GetxController {
 
   // Get cases by specific criteria
   List<CaseModel> getCasesByStatus(String status) {
-    return caseBox.values.where((c) => c.status == status).toList().cast<CaseModel>();
+    return _allCases.where((c) => c.status == status).toList();
   }
 
   List<CaseModel> getUpcomingHearings() {
     final now = DateTime.now();
     final nextWeek = now.add(const Duration(days: 7));
-    return caseBox.values
+    return _allCases
         .where((c) => c.nextHearing != null && c.nextHearing!.isAfter(now) && c.nextHearing!.isBefore(nextWeek))
-        .toList()
-        .cast<CaseModel>();
+        .toList();
   }
 
   List<CaseModel> getOverdueHearings() {
     final now = DateTime.now();
-    return caseBox.values
+    return _allCases
         .where((c) => c.nextHearing != null && c.nextHearing!.isBefore(now))
-        .toList()
-        .cast<CaseModel>();
+        .toList();
   }
 }
