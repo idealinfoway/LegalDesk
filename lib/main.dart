@@ -16,6 +16,7 @@ import 'app/data/models/task_model.dart';
 import 'app/data/models/time_entry_model.dart';
 import 'app/data/models/user_model.dart';
 import 'app/routes/app_routes.dart';
+import 'app/services/storage_service.dart';
 import 'app/theme/app_theme.dart';
 // import 'app/services/notification_service.dart';
 bool _isInitialized = false;
@@ -71,6 +72,8 @@ Future<void> initializeApp() async {
       Hive.openBox<ExpenseModel>('expenses'),
       Hive.openBox<UserModel>('user'),
     ]);
+
+    await StorageService.instance.migrateLegacyCaseSnapshotToHearings();
 
     MobileAds.instance.initialize();
 

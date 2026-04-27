@@ -123,8 +123,8 @@ class FeedbackDialog {
                               "https://script.google.com/macros/s/AKfycbz_IkJMPNTqbVKf8PBSH0JlGzce-5FiGY5xlXSlxPfrdJd4Qh_P7_rk4dv5FUGZgHXUJw/exec",
                             );
                             final name = _nameController.text.trim() == ''
-                                ? 'PDF APP'
-                                : "${_nameController.text.trim()} (PDF APP)";
+                                ? 'LEgal Deskk'
+                                : "${_nameController.text.trim()} (LEgal Desk)";
 
                             try {
                               final response = await http.post(

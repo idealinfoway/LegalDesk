@@ -5,7 +5,7 @@ import 'package:legalsteward/app/modules/dashboard/controller.dart';
 
 import '../tasks/task_controller.dart';
 
-class dashBoardBinding extends Bindings{
+class DashBoardBinding extends Bindings{
   @override
   void dependencies() {
     

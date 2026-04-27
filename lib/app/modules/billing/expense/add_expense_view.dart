@@ -4,8 +4,11 @@ import 'package:uuid/uuid.dart';
 import '../../../data/models/case_model.dart';
 import '../../../data/models/expense_model.dart';
 import '../../../services/storage_service.dart';
+
 class AddExpenseView extends StatefulWidget {
-  const AddExpenseView({super.key});
+  final String? initialCaseId;
+
+  const AddExpenseView({super.key, this.initialCaseId});
 
   @override
   State<AddExpenseView> createState() => _AddExpenseViewState();
@@ -30,9 +33,14 @@ class _AddExpenseViewState extends State<AddExpenseView> {
 
   Future<void> _loadCases() async {
     final caseBox = await _storage.getBox<CaseModel>('cases');
+    final cases = caseBox.values.toList();
     if (!mounted) return;
     setState(() {
-      caseList = caseBox.values.toList();
+      caseList = cases;
+      final preselected = widget.initialCaseId;
+      if (preselected != null && cases.any((c) => c.id == preselected)) {
+        _selectedCaseId = preselected;
+      }
     });
   }
 
@@ -75,17 +83,13 @@ class _AddExpenseViewState extends State<AddExpenseView> {
           child: ListView(
             children: [
               DropdownButtonFormField<String>(
-                value: _selectedCaseId,
+                initialValue: _selectedCaseId,
                 decoration: const InputDecoration(labelText: "Select Case"),
                 items: caseList.map((c) {
-                  return DropdownMenuItem(
-                    value: c.id,
-                    child: Text(c.title),
-                  );
+                  return DropdownMenuItem(value: c.id, child: Text(c.title));
                 }).toList(),
                 onChanged: (val) => setState(() => _selectedCaseId = val),
-                validator: (val) =>
-                    val == null ? "Please select a case" : null,
+                validator: (val) => val == null ? "Please select a case" : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -104,20 +108,18 @@ class _AddExpenseViewState extends State<AddExpenseView> {
                   labelText: "Amount (₹)",
                   border: OutlineInputBorder(),
                 ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (val) =>
-                    val == null || double.tryParse(val) == null
-                        ? "Enter valid amount"
-                        : null,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                validator: (val) => val == null || double.tryParse(val) == null
+                    ? "Enter valid amount"
+                    : null,
               ),
               const SizedBox(height: 12),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text("Date"),
-                subtitle: Text(
-                  "${_selectedDate.toLocal()}".split(" ")[0],
-                ),
+                subtitle: Text("${_selectedDate.toLocal()}".split(" ")[0]),
                 trailing: IconButton(
                   icon: const Icon(Icons.calendar_today),
                   onPressed: _pickDate,

@@ -8,7 +8,9 @@ import '../../../data/models/expense_model.dart';
 import '../../../data/models/case_model.dart';
 
 class AddInvoiceView extends StatefulWidget {
-  const AddInvoiceView({super.key});
+  final String? initialCaseId;
+
+  const AddInvoiceView({super.key, this.initialCaseId});
 
   @override
   State<AddInvoiceView> createState() => _AddInvoiceViewState();
@@ -16,8 +18,8 @@ class AddInvoiceView extends StatefulWidget {
 
 class _AddInvoiceViewState extends State<AddInvoiceView> {
   String? _selectedCaseId;
-  List<String> _selectedTimeEntryIds = [];
-  List<String> _selectedExpenseIds = [];
+  final List<String> _selectedTimeEntryIds = [];
+  final List<String> _selectedExpenseIds = [];
   final StorageService _storage = StorageService.instance;
   bool _ready = false;
   List<CaseModel> _cases = <CaseModel>[];
@@ -34,12 +36,17 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
     final caseBox = await _storage.getBox<CaseModel>('cases');
     final timeBox = await _storage.getBox<TimeEntryModel>('time_entries');
     final expenseBox = await _storage.getBox<ExpenseModel>('expenses');
+    final cases = caseBox.values.toList();
+    final initialCaseId = widget.initialCaseId;
 
     if (!mounted) return;
     setState(() {
-      _cases = caseBox.values.toList();
+      _cases = cases;
       _timeEntries = timeBox.values.toList();
       _expenses = expenseBox.values.toList();
+      if (initialCaseId != null && cases.any((c) => c.id == initialCaseId)) {
+        _selectedCaseId = initialCaseId;
+      }
       _ready = true;
     });
   }
@@ -62,7 +69,7 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
           child: Column(
             children: [
               DropdownButtonFormField<String>(
-                value: _selectedCaseId,
+                initialValue: _selectedCaseId,
                 decoration: const InputDecoration(labelText: "Select Case"),
                 items: _cases.map((c) {
                   return DropdownMenuItem(value: c.id, child: Text(c.title));
@@ -70,48 +77,58 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
                 onChanged: (val) => setState(() => _selectedCaseId = val),
               ),
               const SizedBox(height: 12),
-        
+
               if (_selectedCaseId != null) ...[
-                const Text("Time Entries", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "Time Entries",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 ..._timeEntries
                     .where((t) => t.caseId == _selectedCaseId)
-                    .map((t) => CheckboxListTile(
-                          title: Text("${t.description} - ₹${t.total}"),
-                          value: _selectedTimeEntryIds.contains(t.key.toString()),
-                          onChanged: (v) {
-                            setState(() {
-                              if (v == true) {
-                                _selectedTimeEntryIds.add(t.key.toString());
-                              } else {
-                                _selectedTimeEntryIds.remove(t.key.toString());
-                              }
-                            });
-                          },
-                        )),
+                    .map(
+                      (t) => CheckboxListTile(
+                        title: Text("${t.description} - ₹${t.total}"),
+                        value: _selectedTimeEntryIds.contains(t.key.toString()),
+                        onChanged: (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedTimeEntryIds.add(t.key.toString());
+                            } else {
+                              _selectedTimeEntryIds.remove(t.key.toString());
+                            }
+                          });
+                        },
+                      ),
+                    ),
                 const SizedBox(height: 12),
-                const Text("Expenses", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "Expenses",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 ..._expenses
                     .where((e) => e.caseId == _selectedCaseId)
-                    .map((e) => CheckboxListTile(
-                          title: Text("${e.title} - ₹${e.amount}"),
-                          value: _selectedExpenseIds.contains(e.key.toString()),
-                          onChanged: (v) {
-                            setState(() {
-                              if (v == true) {
-                                _selectedExpenseIds.add(e.key.toString());
-                              } else {
-                                _selectedExpenseIds.remove(e.key.toString());
-                              }
-                            });
-                          },
-                        )),
+                    .map(
+                      (e) => CheckboxListTile(
+                        title: Text("${e.title} - ₹${e.amount}"),
+                        value: _selectedExpenseIds.contains(e.key.toString()),
+                        onChanged: (v) {
+                          setState(() {
+                            if (v == true) {
+                              _selectedExpenseIds.add(e.key.toString());
+                            } else {
+                              _selectedExpenseIds.remove(e.key.toString());
+                            }
+                          });
+                        },
+                      ),
+                    ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.receipt),
                   label: const Text("Generate Invoice"),
                   onPressed: _generateInvoice,
-                )
-              ]
+                ),
+              ],
             ],
           ),
         ),
@@ -123,12 +140,15 @@ class _AddInvoiceViewState extends State<AddInvoiceView> {
     final timeBox = await _storage.getBox<TimeEntryModel>('time_entries');
     final expenseBox = await _storage.getBox<ExpenseModel>('expenses');
 
-    final selectedTimeEntries = _selectedTimeEntryIds.map((id) =>
-        timeBox.get(int.parse(id))!).toList();
-    final selectedExpenses = _selectedExpenseIds.map((id) =>
-        expenseBox.get(int.parse(id))!).toList();
+    final selectedTimeEntries = _selectedTimeEntryIds
+        .map((id) => timeBox.get(int.parse(id))!)
+        .toList();
+    final selectedExpenses = _selectedExpenseIds
+        .map((id) => expenseBox.get(int.parse(id))!)
+        .toList();
 
-    final totalAmount = selectedTimeEntries.fold<double>(0, (s, e) => s + e.total) +
+    final totalAmount =
+        selectedTimeEntries.fold<double>(0, (s, e) => s + e.total) +
         selectedExpenses.fold<double>(0, (s, e) => s + e.amount);
 
     final invoice = InvoiceModel(

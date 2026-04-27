@@ -1,28 +1,18 @@
 import 'dart:io';
 
-import 'package:archive/archive_io.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:legalsteward/app/services/incremental_backup_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:synchronized/synchronized.dart';
 
-import '../../data/models/case_model.dart';
-import '../../data/models/client_model.dart';
-import '../../data/models/expense_model.dart';
-import '../../data/models/hearing_model.dart';
-import '../../data/models/invoice_model.dart';
-import '../../data/models/task_model.dart';
-import '../../data/models/time_entry_model.dart';
 import '../../data/models/user_model.dart';
 import '../../services/storage_service.dart';
 
 class LoginController extends GetxController {
-  final _backupLock = Lock();
   final StorageService _storage = StorageService.instance;
 
   final GoogleSignIn googleSignIn = GoogleSignIn(
@@ -34,7 +24,7 @@ class LoginController extends GetxController {
   final RxBool isLoggedIn = false.obs;
 
   /// Path and filename for the backup zip on Google Drive
-  final String driveBackupFileName = 'legaldesk_backup.zip';
+  // final String driveBackupFileName = 'legaldesk_backup.zip';
 
   @override
   void onInit() {
@@ -56,7 +46,7 @@ class LoginController extends GetxController {
         });
       }
     } catch (e) {
-      print('Error checking login status: $e');
+      // print('Error checking login status: $e');
     }
   }
 
@@ -192,6 +182,9 @@ class LoginController extends GetxController {
       for (var entity in files) {
         if (entity is File &&
             (entity.path.endsWith('.pdf') ||
+                entity.path.endsWith('.doc') ||
+                entity.path.endsWith('.docx') ||
+                entity.path.endsWith('.txt') ||
                 entity.path.endsWith('.jpg') ||
                 entity.path.endsWith('.jpeg') ||
                 entity.path.endsWith('.png'))) {
@@ -220,192 +213,81 @@ class LoginController extends GetxController {
 
   /// Backup all Hive box files to a zip and upload to Google Drive
   /// Backup all Hive box files to a zip and upload to Google Drive
-  Future<void> backupToDrive(GoogleAuthClient client) async {
-    await _backupLock.synchronized(() async {
-      try {
-        await _storage.flushCoreBoxes();
+   // Replace backupToDrive() with this:
+  Future<Map<String, int>> backupToDrive(GoogleAuthClient client) async {
+  // Close boxes → Hive writes everything to disk → safe to read files.
+  await _storage.flushCoreBoxes();
+  await Future.delayed(const Duration(milliseconds: 500)); // let OS flush
+ 
+  final driveApi = drive.DriveApi(client);
+  final summary = await IncrementalBackupService.instance.backupToDrive(driveApi);
+ 
+  // Re-open boxes so the app keeps working after backup.
+  await _storage.ensureCoreBoxesOpen();
+ 
+  return summary;
+  // No snackbar here — UI (_handleBackup) owns messaging.
+}
+ 
+/// Restores from Drive. Called during sign-in, before navigating to dashboard.
+/// Handles both old ZIP format (auto-migrates) and new folder format.
+Future<void> restoreFromDrive(GoogleAuthClient client) async {
+  try {
+    final driveApi = drive.DriveApi(client);
+ 
+    await IncrementalBackupService.instance.restoreFromDrive(
+      driveApi,
+      onBeforeRestore: () async {
+        // Close Hive boxes so their files can be safely overwritten.
+        await _storage.closeCoreBoxesSafely();
+      },
+    );
+ 
+    // Re-open boxes with the freshly restored data.
+    await _storage.ensureCoreBoxesOpen();
 
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        // Hive directory
-        final hiveDir = await getApplicationDocumentsDirectory();
-        final hivePath = hiveDir.path;
-
-        // Use temp filename to avoid conflict
-        final tempFileName =
-            'temp_${DateTime.now().millisecondsSinceEpoch}_$driveBackupFileName';
-        final zipFile = File('$hivePath/$tempFileName');
-
-        final archive = Archive();
-        final dir = Directory(hivePath);
-        bool hasFiles = false;
-        int totalOriginalSize = 0;
-
-        // final dir = Directory(hivePath);
-        await for (var entity in dir.list()) {
-          if (entity is File &&
-              (entity.path.endsWith('.hive') ||
-                  entity.path.endsWith('.pdf') ||
-                  entity.path.endsWith('.jpg') ||
-                  entity.path.endsWith('.jpeg') ||
-                  entity.path.endsWith('.png'))) {
-            final fileBytes = await entity.readAsBytes();
-            final fileName = entity.path.split('/').last;
-
-            final archiveFile = ArchiveFile(
-              fileName,
-              fileBytes.length,
-              fileBytes,
-            );
-            archive.addFile(archiveFile);
-            hasFiles = true;
-          }
-        }
-
-        if (!hasFiles) {
-          throw Exception('No Hive files found to backup');
-        }
-
-        final zipEncoder = ZipEncoder();
-        final zipData = zipEncoder.encode(archive);
-
-        if (zipData.isEmpty) {
-          throw Exception(
-            'Failed to create zip data - encoder returned null/empty',
-          );
-        }
-
-        await zipFile.writeAsBytes(zipData);
-
-        if (!await zipFile.exists()) {
-          throw Exception('Zip file was not created on disk');
-        }
-
-        final zipSize = await zipFile.length();
-        if (zipSize < 50) {
-          throw Exception(
-            'Zip file is too small ($zipSize bytes), likely corrupt',
-          );
-        }
-
-        // Zip validation
-        try {
-          final testBytes = await zipFile.readAsBytes();
-          final testArchive = ZipDecoder().decodeBytes(testBytes);
-          if (testArchive.files.isEmpty) {
-            throw Exception('Zip file is invalid or empty');
-          }
-        } catch (e) {
-          throw Exception('Zip validation failed: $e');
-        }
-
-        // Upload to Google Drive
-        final driveApi = drive.DriveApi(client);
-        final fileList = await driveApi.files.list(
-          q: "name='$driveBackupFileName' and trashed=false",
-        );
-
-        drive.File? existingFile;
-        if (fileList.files != null && fileList.files!.isNotEmpty) {
-          existingFile = fileList.files!.first;
-        }
-
-        final media = drive.Media(zipFile.openRead(), zipSize);
-
-        if (existingFile != null) {
-          await driveApi.files.update(
-            drive.File(),
-            existingFile.id!,
-            uploadMedia: media,
-          );
-        } else {
-          final newFile = drive.File()
-            ..name = driveBackupFileName
-            ..description =
-                'LegalDesk Hive Database Backup - Created ${DateTime.now().toIso8601String()}';
-          await driveApi.files.create(newFile, uploadMedia: media);
-        }
-
-        // Cleanup temp zip
-        if (await zipFile.exists()) {
-          await zipFile.delete();
-        }
-
-        print('Backup uploaded to Google Drive successfully!');
-      } catch (e) {
-        print('Error backing up to Drive: $e');
-        rethrow;
-      }
-    });
-  }
-
-  /// Restore Hive data from Google Drive backup zip
-  Future<void> restoreFromDrive(GoogleAuthClient client) async {
-    try {
-      // 1. Close all boxes before restoring
-      await _storage.closeCoreBoxesSafely();
-
-      final hiveDir = await getApplicationDocumentsDirectory();
-      final hivePath = hiveDir.path;
-      final zipFile = File('$hivePath/$driveBackupFileName');
-
-      // 2. Download backup zip from Drive
-      final driveApi = drive.DriveApi(client);
-      final fileList = await driveApi.files.list(
-        q: "name='$driveBackupFileName' and trashed=false",
-      );
-      if (fileList.files == null || fileList.files!.isEmpty) {
-        print('No backup found on Drive.');
-        return;
-      }
-      final backupFile = fileList.files!.first;
-      final mediaStream =
-          await driveApi.files.get(
-                backupFile.id!,
-                downloadOptions: drive.DownloadOptions.fullMedia,
-              )
-              as drive.Media;
-      final List<int> dataStore = [];
-      await for (final data in mediaStream.stream) {
-        dataStore.addAll(data);
-      }
-      await zipFile.writeAsBytes(dataStore);
-
-      // 3. Unzip and overwrite Hive files
-      final bytes = zipFile.readAsBytesSync();
-      final archive = ZipDecoder().decodeBytes(bytes);
-      for (final file in archive) {
-        final outFile = File('$hivePath/${file.name}');
-        await outFile.writeAsBytes(file.content as List<int>);
-      }
-      print('Hive data restored from Drive!');
-
-      // 4. Re-open all boxes with the correct type
+    // Repair old absolute attachment paths so restored files open correctly.
+    final repaired = await _storage.repairAttachmentPathsAfterRestore();
+    if (repaired > 0) {
+      print('[Backup] Repaired $repaired attachment path(s) after restore.');
+    }
+  } catch (e) {
+    if (e.toString().contains('No backup found')) {
+      // First sign-in ever — no backup exists yet. Fine.
+      // Make sure boxes are open before continuing.
       await _storage.ensureCoreBoxesOpen();
-    } catch (e) {
-      print('Error restoring from Drive: $e');
-      rethrow;
+      return;
     }
+    // Re-open boxes even on error so the app doesn't hang.
+    await _storage.ensureCoreBoxesOpen();
+    rethrow;
   }
-
-  /// Delete backup from Google Drive
-  Future<void> deleteBackupFromDrive(GoogleAuthClient client) async {
-    try {
-      final driveApi = drive.DriveApi(client);
-      final fileList = await driveApi.files.list(
-        q: "name='$driveBackupFileName' and trashed=false",
-      );
-      if (fileList.files != null && fileList.files!.isNotEmpty) {
-        final backupFile = fileList.files!.first;
-        await driveApi.files.delete(backupFile.id!);
-        print('Backup deleted from Google Drive!');
-      }
-    } catch (e) {
-      print('Error deleting backup from Drive: $e');
-      rethrow;
-    }
-  }
-
+}
+ 
+/// Deletes the entire backup folder from Drive (covers new format).
+/// Also deletes the legacy ZIP if it still exists.
+Future<void> deleteBackupFromDrive(GoogleAuthClient client) async {
+  final driveApi = drive.DriveApi(client);
+ 
+  // Delete new-format folder.
+  final folderResult = await driveApi.files.list(
+    q: "name='${IncrementalBackupService.driveFolderName}'"
+        " and mimeType='application/vnd.google-apps.folder'"
+        " and trashed=false",
+    $fields: 'files(id)',
+  );
+  final folderId = folderResult.files?.firstOrNull?.id;
+  if (folderId != null) await driveApi.files.delete(folderId);
+ 
+  // Also delete legacy ZIP if it's still around.
+  final zipResult = await driveApi.files.list(
+    q: "name='${IncrementalBackupService.legacyZipName}' and trashed=false",
+    $fields: 'files(id)',
+  );
+  final zipId = zipResult.files?.firstOrNull?.id;
+  if (zipId != null) await driveApi.files.delete(zipId);
+}
+  
   Future<void> ensureAllBoxesOpen() async {
     await _storage.ensureCoreBoxesOpen();
   }

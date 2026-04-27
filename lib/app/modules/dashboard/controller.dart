@@ -3,7 +3,7 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
-import 'package:flutter/material.dart';
+// import 'package:flutter/material.dart';
 
 import '../../services/app_update.dart';
 
@@ -49,7 +49,7 @@ class DashBoardController extends GetxController{
 
   @override
   void onInit() {
-    // TODO: implement onInit
+   
     print("start dashboard");
     checkForUpdate();
     

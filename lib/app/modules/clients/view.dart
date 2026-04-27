@@ -20,14 +20,15 @@ class ClientsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ClientsController());
+    final controller = Get.find<ClientsController>();
+      
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '👥 Clients',
+          'Clients',
           style: FontStyles.poppins(fontWeight: FontWeight.w600),
         ),
         actions: [
@@ -153,7 +154,7 @@ class ClientsView extends StatelessWidget {
               valueListenable: Hive.box<ClientModel>('clients').listenable(),
               builder: (context, Box<ClientModel> box, _) {
                 return Obx(() {
-                  final clients = controller.filteredClients.value;
+                  final clients = controller.filteredClients;
 
                   if (controller.totalClients == 0) {
                     return _buildEmptyState(
@@ -379,7 +380,7 @@ class ClientsView extends StatelessWidget {
                 icon: const Icon(Icons.more_vert),
                 onSelected: (value) async {
                   if (value == 'edit') {
-                    Get.to(() => AddClientView(), arguments: client);
+                    Get.toNamed('/edit-client', arguments: client);
                   } else if (value == 'delete') {
                     await controller.deleteClient(client);
                   } 

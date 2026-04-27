@@ -44,7 +44,7 @@ class AppPages {
     GetPage(
       name: '/dashboard',
       page: () => DashboardView(),
-      bindings: [dashBoardBinding(),LoginBinding()],
+      bindings: [DashBoardBinding(),LoginBinding()],
       // transition: Transition.,
       transitionDuration: const Duration(milliseconds: 250),
     ),
@@ -70,6 +70,12 @@ class AppPages {
     ),
     GetPage(
       name: '/add-client',
+      page: () => AddClientView(),
+      // transition: Transition.downToUp,
+      transitionDuration: const Duration(milliseconds: 200),
+    ),
+    GetPage(
+      name: '/edit-client',
       page: () => AddClientView(),
       // transition: Transition.downToUp,
       transitionDuration: const Duration(milliseconds: 200),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:legalsteward/app/modules/about/view.dart';
 import 'package:legalsteward/app/modules/ads/banner_ad_implement.dart';
@@ -21,92 +22,109 @@ import '../tasks/task_detail_view.dart';
 import 'profile_page.dart';
 
 class DashboardView extends GetView<DashBoardController> {
-  const DashboardView({super.key});
+  DashboardView({super.key});
 
   Future<void> _ensureCoreBoxesOpen() async {
     await StorageService.instance.ensureCoreBoxesOpen();
   }
 
-  Future<void> _handleBackup(BuildContext context) async {
-    final loginController = Get.find<LoginController>();
-    final startTime = DateTime.now();
-
-    // Show loading
-    Get.dialog(
-      barrierDismissible: false,
-      const AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Backing up... Please wait'),
-          ],
-        ),
+  bool _dialogOpen = false;
+ 
+Future<void> _handleBackup(BuildContext context) async {
+  final loginController = Get.find<LoginController>();
+  final startTime = DateTime.now();
+  final capturedContext = context;
+ 
+  _dialogOpen = true;
+  showDialog(
+    context: capturedContext,
+    barrierDismissible: false,
+    builder: (_) => const AlertDialog(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Backing up… Please wait'),
+        ],
       ),
+    ),
+  );
+ 
+  try {
+    GoogleSignInAccount? googleUser =
+        await loginController.googleSignIn.signInSilently();
+    googleUser ??= await loginController.googleSignIn.signIn();
+ 
+    if (googleUser == null) {
+      throw Exception('sign_in_cancelled');
+    }
+ 
+    final authHeaders = await googleUser.authHeaders;
+    final client = GoogleAuthClient(authHeaders);
+ 
+    await loginController.backupToDrive(client);
+ 
+    await _closeDialogAfterMinimumDuration(startTime, capturedContext);
+    _showSnackbar(
+      'Backup completed successfully.',
+      isError: false,
+      capturedContext: capturedContext,
     );
-
-    try {
-      // Step 1: Auth
-      final googleUser = await loginController.googleSignIn.signInSilently();
-
-      if (googleUser == null) {
-        throw Exception('sign_in_required');
-      }
-
-      // Step 2: Backup
-      final authHeaders = await googleUser.authHeaders;
-      final client = GoogleAuthClient(authHeaders);
-
-      await loginController.backupToDrive(client);
-
-      // Success
-      await _closeDialogAfterMinimumDuration(startTime);
-      _showSnackbar('Backup completed successfully!', isError: false);
-    } catch (e) {
-      await _closeDialogAfterMinimumDuration(startTime);
-      _showSnackbar(_mapError(e), isError: true);
-    }
+  } catch (e) {
+    await _closeDialogAfterMinimumDuration(startTime, capturedContext);
+    _showSnackbar(
+      _mapError(e),
+      isError: true,
+      capturedContext: capturedContext,
+    );
   }
-
-  void _closeDialog() {
-    if (Get.isDialogOpen ?? false) {
-      Get.back();
-    }
+}
+ 
+void _closeDialog(BuildContext context) {
+  if (_dialogOpen) {
+    _dialogOpen = false;
+    // Pop using the captured page context, not Get.context —
+    // this always targets the dialog on top of this page's route.
+    Navigator.of(context, rootNavigator: true).pop();
   }
-
-  Future<void> _closeDialogAfterMinimumDuration(DateTime startTime) async {
-    final elapsed = DateTime.now().difference(startTime);
-    const minDuration = Duration(seconds: 4);
-
-    if (elapsed < minDuration) {
-      await Future.delayed(minDuration - elapsed);
-    }
-
-    _closeDialog(); // Close the dialog safely
+}
+ 
+Future<void> _closeDialogAfterMinimumDuration(
+  DateTime startTime,
+  BuildContext context,
+) async {
+  final elapsed = DateTime.now().difference(startTime);
+  const minDuration = Duration(seconds: 1);
+  if (elapsed < minDuration) {
+    await Future.delayed(minDuration - elapsed);
   }
-
-  void _showSnackbar(String message, {required bool isError}) {
+  _closeDialog(context);
+}
+ 
+void _showSnackbar(
+  String message, {
+  required bool isError,
+  required BuildContext capturedContext,
+}) {
   Get.snackbar(
-    isError ? 'Backup Failed' : 'Success',
+    isError ? 'Backup failed' : 'Backup complete',
     message,
     snackPosition: SnackPosition.BOTTOM,
     backgroundColor: isError ? Colors.red.shade600 : Colors.green.shade600,
     colorText: Colors.white,
-    duration: Duration(seconds: isError ? 4 : 2),
+    duration: Duration(seconds: isError ? 5 : 3),
     icon: Icon(
       isError ? Icons.error_outline : Icons.check_circle_outline,
       color: Colors.white,
     ),
     margin: const EdgeInsets.all(8),
     borderRadius: 8,
-
-    // 👇 Add retry ONLY for errors
     mainButton: isError
         ? TextButton(
             onPressed: () {
-              // Get.back(); // close snackbar
-              _handleBackup(Get.context!);
+              if (Get.isSnackbarOpen) Get.closeCurrentSnackbar();
+              _handleBackup(capturedContext);
             },
             child: const Text(
               'Retry',
@@ -116,22 +134,21 @@ class DashboardView extends GetView<DashBoardController> {
         : null,
   );
 }
-
-  String _mapError(dynamic error) {
-    final message = error.toString().toLowerCase();
-    if (message.contains('socket') || message.contains('network')) {
-      return 'Network connection issue. Please check your internet.';
-    } else if (message.contains('sign_in_required')) {
-      return 'Please sign in to Google Drive first.';
-    } else if (message.contains('timeout')) {
-      return 'Request timed out. Please try again.';
-    } else if (message.contains('permission')) {
-      return 'Permission denied. Please check app permissions.';
-    } else if (message.contains('googleapis')) {
-      return 'Google services unavailable.';
-    }
-    return 'Backup failed. Please try again.';
+ 
+String _mapError(dynamic error) {
+  final msg = error.toString().toLowerCase();
+  if (msg.contains('sign_in_cancelled')) return 'Sign-in was cancelled.';
+  if (msg.contains('sign_in_required')) return 'Please sign in to Google Drive first.';
+  if (msg.contains('socket') || msg.contains('network')) {
+    return 'Network issue — check your connection and retry.';
   }
+  if (msg.contains('timeout')) return 'Request timed out. Please retry.';
+  if (msg.contains('permission')) return 'Permission denied. Check app permissions.';
+  if (msg.contains('googleapis') || msg.contains('drive')) {
+    return 'Google Drive is unavailable. Try again shortly.';
+  }
+  return 'Backup failed — please retry.';
+}
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +207,7 @@ class DashboardView extends GetView<DashBoardController> {
                   ShareParams(
                     subject: 'Check out this App!',
                     text:
-                        'Check out my app: https://play.google.com/store/apps/details?id=mhc.file.mhcdb',
+                        'Check out my app: https://play.google.com/store/apps/details?id=my.legal.desk',
                     title: 'Check out this App',
                   ),
                 );

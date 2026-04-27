@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:collection/collection.dart';
 import '../../../utils/font_styles.dart';
@@ -23,7 +22,7 @@ class InvoiceListView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("📄 Invoices", style: FontStyles.poppins(fontWeight: FontWeight.w600)),
+        title: Text("Invoices", style: FontStyles.poppins(fontWeight: FontWeight.w600)),
       ),
       body: FutureBuilder<void>(
         future: _ensureCoreBoxesOpen(),

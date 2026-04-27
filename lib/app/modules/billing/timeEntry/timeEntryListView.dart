@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:collection/collection.dart';
 import '../../../utils/font_styles.dart';
@@ -27,8 +26,8 @@ class TimeEntryListView extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                colorScheme.primary.withOpacity(0.9),
-                colorScheme.secondary.withOpacity(0.9),
+                colorScheme.primary.withValues(alpha: 0.9),
+                colorScheme.secondary.withValues(alpha: 0.9),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

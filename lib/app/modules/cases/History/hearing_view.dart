@@ -46,7 +46,7 @@ class HearingHistoryView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -126,8 +126,8 @@ class HearingHistoryView extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: isDark 
-                          ? Colors.black.withOpacity(0.3)
-                          : Colors.grey.withOpacity(0.1),
+                          ? Colors.black.withValues(alpha: 0.3)
+                          : Colors.grey.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -150,10 +150,10 @@ class HearingHistoryView extends StatelessWidget {
                             height: 60,
                             decoration: BoxDecoration(
                               color: isToday
-                                  ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                                   : isPast
-                                      ? Colors.grey.withOpacity(0.1)
-                                      : Colors.orange.withOpacity(0.1),
+                                      ? Colors.grey.withValues(alpha: 0.1)
+                                      : Colors.orange.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: isToday

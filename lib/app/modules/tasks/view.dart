@@ -18,7 +18,7 @@ class TaskListView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "📝 Tasks",
+          "Tasks",
           style: FontStyles.poppins(fontWeight: FontWeight.w600),
         ),
         flexibleSpace: Container(

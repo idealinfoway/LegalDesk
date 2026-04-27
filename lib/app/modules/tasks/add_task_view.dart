@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/task_model.dart';
 import '../../data/models/case_model.dart';
-import '../../services/notification_service.dart';
 import '../../services/storage_service.dart';
 import 'task_controller.dart';
 
 class AddTaskView extends StatefulWidget {
-  const AddTaskView({super.key});
+  final String? initialCaseId;
+
+  const AddTaskView({super.key, this.initialCaseId});
 
   @override
   State<AddTaskView> createState() => _AddTaskViewState();
@@ -33,75 +34,79 @@ class _AddTaskViewState extends State<AddTaskView> {
 
   Future<void> _loadCases() async {
     final box = await _storage.getBox<CaseModel>('cases');
+    final cases = box.values.toList();
 
     if (!mounted) return;
     setState(() {
-      caseList = box.values.toList();
+      caseList = cases;
+      final preselected = widget.initialCaseId;
+      if (preselected != null && cases.any((c) => c.id == preselected)) {
+        _selectedCaseId = preselected;
+      }
     });
   }
 
   Future<void> _pickDateTime() async {
-  final date = await showDatePicker(
-    context: context,
-    initialDate: _dueDate,
-    firstDate: DateTime.now().add(const Duration(minutes: 2)),
-    lastDate: DateTime(2100),
-  );
-
-  if (date == null) return;
-
-  final time = await showTimePicker(
-    context: context,
-    initialTime: TimeOfDay.fromDateTime(_dueDate),
-  );
-
-  if (time == null) return;
-
-  setState(() {
-    _dueDate = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dueDate,
+      firstDate: DateTime.now().add(const Duration(minutes: 2)),
+      lastDate: DateTime(2100),
     );
-  });
-}
 
+    if (date == null) return;
 
- void _saveTask() async {
-  if (!_formKey.currentState!.validate()) return;
+    final time = await showTimePicker(
+      context: context,
+      initialEntryMode: TimePickerEntryMode.input,
+      initialTime: TimeOfDay.fromDateTime(_dueDate),
+    );
 
-  final id = DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
+    if (time == null) return;
 
-  final task = TaskModel(
-    id: id.toString(),
-    title: _titleController.text.trim(),
-    description: _descController.text.trim(),
-    dueDate: _dueDate,
-    hasReminder: _hasReminder,
-    linkedCaseId: _selectedCaseId,
-    isCompleted: false,
-  );
+    setState(() {
+      _dueDate = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
 
-  await controller.addTask(task);
+  void _saveTask() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  // ⏰ Schedule Notification
-  // if (_hasReminder) {
-  //   await NotificationService.scheduleNotification(
-  //     id: id,
-  //     title: "Reminder: ${task.title}",
-  //     body: task.description?.isNotEmpty == true
-  //         ? task.description!
-  //         : 'Your task is due today!',
-  //     scheduledDate: _dueDate,
-  //   );
-  // }
+    final id = DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
 
-  Get.back();
-  Get.snackbar("Success", "Task added successfully!");
-}
+    final task = TaskModel(
+      id: id.toString(),
+      title: _titleController.text.trim(),
+      description: _descController.text.trim(),
+      dueDate: _dueDate,
+      hasReminder: _hasReminder,
+      linkedCaseId: _selectedCaseId,
+      isCompleted: false,
+    );
 
+    await controller.addTask(task);
+
+    // ⏰ Schedule Notification
+    // if (_hasReminder) {
+    //   await NotificationService.scheduleNotification(
+    //     id: id,
+    //     title: "Reminder: ${task.title}",
+    //     body: task.description?.isNotEmpty == true
+    //         ? task.description!
+    //         : 'Your task is due today!',
+    //     scheduledDate: _dueDate,
+    //   );
+    // }
+
+    Get.back();
+    Get.snackbar("Success", "Task added successfully!");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,12 +139,9 @@ class _AddTaskViewState extends State<AddTaskView> {
               ),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: "Link to Case"),
-                value: _selectedCaseId,
+                initialValue: _selectedCaseId,
                 items: caseList.map((c) {
-                  return DropdownMenuItem(
-                    value: c.id,
-                    child: Text(c.title),
-                  );
+                  return DropdownMenuItem(value: c.id, child: Text(c.title));
                 }).toList(),
                 onChanged: (val) => setState(() => _selectedCaseId = val),
               ),
@@ -153,7 +155,7 @@ class _AddTaskViewState extends State<AddTaskView> {
                 onPressed: _saveTask,
                 icon: const Icon(Icons.save),
                 label: const Text("Save Task"),
-              )
+              ),
             ],
           ),
         ),

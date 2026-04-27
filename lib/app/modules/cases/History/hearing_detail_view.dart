@@ -204,8 +204,8 @@ class _HearingDetailViewState extends State<HearingDetailView> {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.grey.withOpacity(0.08),
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -222,7 +222,7 @@ class _HearingDetailViewState extends State<HearingDetailView> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: (iconColor ?? Theme.of(context).colorScheme.primary)
-                        .withOpacity(0.1),
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -474,7 +474,7 @@ class _HearingDetailViewState extends State<HearingDetailView> {
                   ),
                   borderRadius: BorderRadius.circular(8),
                   color: nextDate != null
-                      ? Colors.green.withOpacity(0.05)
+                      ? Colors.green.withValues(alpha: 0.05)
                       : (_isEditing
                           ? (isDark ? Colors.grey[800] : Colors.grey[50])
                           : null),

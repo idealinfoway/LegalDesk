@@ -148,8 +148,8 @@ class _AddHearingViewState extends State<AddHearingView> {
         boxShadow: [
           BoxShadow(
             color: isDark
-                ? Colors.black.withOpacity(0.3)
-                : Colors.grey.withOpacity(0.08),
+                ? Colors.black.withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -166,7 +166,7 @@ class _AddHearingViewState extends State<AddHearingView> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: (iconColor ?? Theme.of(context).colorScheme.primary)
-                        .withOpacity(0.1),
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -353,7 +353,7 @@ class _AddHearingViewState extends State<AddHearingView> {
                         ),
                         borderRadius: BorderRadius.circular(8),
                         color: nextHearingDate != null
-                            ? Colors.green.withOpacity(0.05)
+                            ? Colors.green.withValues(alpha: 0.05)
                             : null,
                       ),
                       child: Row(
@@ -406,7 +406,7 @@ class _AddHearingViewState extends State<AddHearingView> {
               color: isDark ? Colors.grey[850] : Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),

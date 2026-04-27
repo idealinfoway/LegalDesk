@@ -74,9 +74,9 @@ class _ProfilePageState extends State<ProfilePage>
     if (user != null) {
       _nameController.text = user!.name;
       _emailController.text = user!.email;
-      _phoneController.text = user!.phone ?? '';
-      _cityController.text = user!.city ?? '';
-      _stateController.text = user!.state ?? '';
+      _phoneController.text = user!.phone;
+      _cityController.text = user!.city;
+      _stateController.text = user!.state;
     }
   }
 
@@ -147,7 +147,7 @@ class _ProfilePageState extends State<ProfilePage>
             gradient: LinearGradient(
               colors: [
                 theme.colorScheme.primary,
-                theme.colorScheme.primary.withOpacity(0.8),
+                theme.colorScheme.primary.withValues(alpha: 0.8),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -217,7 +217,7 @@ class _ProfilePageState extends State<ProfilePage>
     return Card(
       key: const ValueKey('editing'),
       elevation: 8,
-      shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+      shadowColor: theme.colorScheme.primary.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
         decoration: BoxDecoration(
@@ -225,7 +225,7 @@ class _ProfilePageState extends State<ProfilePage>
           gradient: LinearGradient(
             colors: [
               theme.colorScheme.surface,
-              theme.colorScheme.surface.withOpacity(0.95),
+              theme.colorScheme.surface.withValues(alpha: 0.95),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -246,8 +246,8 @@ class _ProfilePageState extends State<ProfilePage>
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        theme.colorScheme.primary.withOpacity(0.1),
-                        theme.colorScheme.primary.withOpacity(0.05),
+                        theme.colorScheme.primary.withValues(alpha: 0.1),
+                        theme.colorScheme.primary.withValues(alpha: 0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -269,7 +269,7 @@ class _ProfilePageState extends State<ProfilePage>
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: theme.colorScheme.primary.withOpacity(0.3),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -364,7 +364,7 @@ class _ProfilePageState extends State<ProfilePage>
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: Colors.white,
                       elevation: 4,
-                      shadowColor: theme.colorScheme.primary.withOpacity(0.5),
+                      shadowColor: theme.colorScheme.primary.withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -398,7 +398,7 @@ class _ProfilePageState extends State<ProfilePage>
     return Card(
       key: const ValueKey('display'),
       elevation: 8,
-      shadowColor: theme.colorScheme.primary.withOpacity(0.3),
+      shadowColor: theme.colorScheme.primary.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Container(
         decoration: BoxDecoration(
@@ -406,7 +406,7 @@ class _ProfilePageState extends State<ProfilePage>
           gradient: LinearGradient(
             colors: [
               theme.colorScheme.surface,
-              theme.colorScheme.surface.withOpacity(0.95),
+              theme.colorScheme.surface.withValues(alpha: 0.95),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -422,7 +422,7 @@ class _ProfilePageState extends State<ProfilePage>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -467,7 +467,7 @@ class _ProfilePageState extends State<ProfilePage>
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -485,38 +485,38 @@ class _ProfilePageState extends State<ProfilePage>
                   gradient: LinearGradient(
                     colors: [
                       Colors.transparent,
-                      theme.colorScheme.primary.withOpacity(0.3),
+                      theme.colorScheme.primary.withValues(alpha: 0.3),
                       Colors.transparent,
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              if ((user!.phone ?? '').trim().isNotEmpty ||
-                  (user!.city ?? '').trim().isNotEmpty ||
-                  (user!.state ?? '').trim().isNotEmpty)
+              if ((user!.phone ).trim().isNotEmpty ||
+                  (user!.city ).trim().isNotEmpty ||
+                  (user!.state ).trim().isNotEmpty)
                 Column(
                   children: [
-                    if ((user!.phone ?? '').trim().isNotEmpty)
+                    if ((user!.phone ).trim().isNotEmpty)
                       _buildInfoTile(
                         theme,
                         Icons.phone_outlined,
                         'Phone',
-                        user!.phone ?? '',
+                        user!.phone ,
                       ),
-                    if ((user!.city ?? '').trim().isNotEmpty)
+                    if ((user!.city ).trim().isNotEmpty)
                       _buildInfoTile(
                         theme,
                         Icons.location_city_outlined,
                         'City',
-                        user!.city ?? '',
+                        user!.city ,
                       ),
-                    if ((user!.state ?? '').trim().isNotEmpty)
+                    if ((user!.state ).trim().isNotEmpty)
                       _buildInfoTile(
                         theme,
                         Icons.location_on_outlined,
                         'State',
-                        user!.state ?? '',
+                        user!.state ,
                       ),
                     const SizedBox(height: 16),
                   ],
@@ -530,7 +530,7 @@ class _ProfilePageState extends State<ProfilePage>
                     backgroundColor: Colors.red.shade600,
                     foregroundColor: Colors.white,
                     elevation: 4,
-                    shadowColor: Colors.red.withOpacity(0.5),
+                    shadowColor: Colors.red.withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -575,13 +575,13 @@ class _ProfilePageState extends State<ProfilePage>
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
           ),
         ),
         focusedBorder: OutlineInputBorder(
@@ -622,16 +622,16 @@ class _ProfilePageState extends State<ProfilePage>
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: theme.colorScheme.primary, size: 24),
@@ -644,7 +644,7 @@ class _ProfilePageState extends State<ProfilePage>
                 Text(
                   title,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -829,7 +829,7 @@ class _ClearDataLoadingDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: CircularProgressIndicator(
@@ -849,7 +849,7 @@ class _ClearDataLoadingDialog extends StatelessWidget {
             Text(
               'Please wait while we securely erase your information',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

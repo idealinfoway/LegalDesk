@@ -96,7 +96,7 @@ class ExpenseListView extends StatelessWidget {
                           style: FontStyles.poppins(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                         subtitle: Text(
-                          "${expense.date.toLocal().toString().split(" ")[0]}",
+                          expense.date.toLocal().toString().split(" ")[0],
                           style: FontStyles.poppins(fontSize: 15),
                         ),
                         trailing: IconButton(

@@ -179,7 +179,7 @@ class AboutPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: colour.withOpacity(0.35),
+                color: colour.withValues(alpha: 0.35),
                 blurRadius: 10,
                 offset: const Offset(0, 6),
               ),
@@ -194,7 +194,7 @@ class AboutPage extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor: Colors.white.withOpacity(0.15),
+                      backgroundColor: Colors.white.withValues(alpha: 0.15),
                       child: Icon(icon, color: Colors.white, size: 26),
                     ),
                     const SizedBox(width: 12),

@@ -1,20 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import '../../data/models/case_model.dart';
 import '../../data/models/task_model.dart';
+import '../../services/storage_service.dart';
+import '../cases/case_detail_view.dart';
 import 'task_controller.dart';
 
-class TaskDetailView extends StatelessWidget {
+class TaskDetailView extends StatefulWidget {
   final TaskModel task;
-  TaskDetailView({super.key, required this.task});
+  const TaskDetailView({super.key, required this.task});
 
+  @override
+  State<TaskDetailView> createState() => _TaskDetailViewState();
+}
+
+class _TaskDetailViewState extends State<TaskDetailView> {
   final TaskController controller = Get.find<TaskController>();
+  final StorageService _storage = StorageService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    controller.loadTasks();
+  }
+
+  Future<void> _openLinkedCase() async {
+    final linkedCaseId = widget.task.linkedCaseId;
+    if (linkedCaseId == null || linkedCaseId.isEmpty) {
+      return;
+    }
+
+    final caseBox = await _storage.getBox<CaseModel>('cases');
+    CaseModel? linkedCase;
+    for (final c in caseBox.values) {
+      if (c.id == linkedCaseId) {
+        linkedCase = c;
+        break;
+      }
+    }
+
+    if (linkedCase == null) {
+      Get.snackbar(
+        'Case Not Found',
+        'The linked case no longer exists.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    Get.to(() => CaseDetailView(caseData: linkedCase!));
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final formattedDate = DateFormat.yMMMMd().format(task.dueDate.toLocal());
+    final formattedDate = DateFormat.yMMMMd().format(
+      widget.task.dueDate.toLocal(),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -24,10 +68,10 @@ class TaskDetailView extends StatelessWidget {
             fontWeight: FontWeight.bold,
             color: colorScheme.onPrimary,
             letterSpacing: 0.5,
-            fontFamily: 'poppins]',
+            fontFamily: 'poppins',
           ),
         ),
-      
+
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
         elevation: 3,
@@ -57,16 +101,17 @@ class TaskDetailView extends StatelessWidget {
                   children: [
                     // Title
                     Text(
-                      task.title,
+                      widget.task.title,
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
                       ),
                     ),
-                    if (task.description != null && task.description!.isNotEmpty) ...[
+                    if (widget.task.description != null &&
+                        widget.task.description!.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       Text(
-                        task.description!,
+                        widget.task.description!,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                           height: 1.4,
@@ -78,7 +123,11 @@ class TaskDetailView extends StatelessWidget {
                     // Due date row
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, color: colorScheme.primary, size: 20),
+                        Icon(
+                          Icons.calendar_today,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           "Due: $formattedDate",
@@ -94,8 +143,8 @@ class TaskDetailView extends StatelessWidget {
                     // Completed toggle
                     Obx(() {
                       final updatedTask = controller.tasks.firstWhere(
-                        (t) => t.key == task.key,
-                        orElse: () => task,
+                        (t) => t.key == widget.task.key,
+                        orElse: () => widget.task,
                       );
 
                       return Row(
@@ -109,7 +158,7 @@ class TaskDetailView extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Switch(
-                            activeColor: colorScheme.primary,
+                            activeThumbColor: colorScheme.primary,
                             value: updatedTask.isCompleted,
                             onChanged: (val) async {
                               updatedTask.isCompleted = val;
@@ -117,7 +166,9 @@ class TaskDetailView extends StatelessWidget {
                               await controller.loadTasks();
                               Get.snackbar(
                                 "Task Updated",
-                                val ? "Marked as completed" : "Marked as incomplete",
+                                val
+                                    ? "Marked as completed"
+                                    : "Marked as incomplete",
                                 snackPosition: SnackPosition.BOTTOM,
                                 backgroundColor: Colors.black87,
                                 colorText: Colors.white,
@@ -129,6 +180,19 @@ class TaskDetailView extends StatelessWidget {
                         ],
                       );
                     }),
+                    if (widget.task.linkedCaseId != null) ...[
+                      // const SizedBox(height: 24),
+                      
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _openLinkedCase,
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: const Text('Go to Linked Case'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -139,3 +203,7 @@ class TaskDetailView extends StatelessWidget {
     );
   }
 }
+
+// void fetchCase() {
+//   caseTitle =
+// }
